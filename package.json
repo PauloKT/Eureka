@@ -1,6 +1,12 @@
 {
-  "name": "@eureka/persona-2-research",
+  "name": "eureka",
   "private": true,
-  "type": "module",
-  "scripts": { "test": "node --test", "typecheck": "node --check src/research.mjs && node --check src/sources.mjs && node --check src/discovery-search.mjs" }
+  "version": "0.1.0",
+  "workspaces": ["apps/*", "packages/*"],
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev:api": "npm run dev --workspace @eureka/api",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  }
 }

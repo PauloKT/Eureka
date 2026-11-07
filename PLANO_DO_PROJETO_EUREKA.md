@@ -1,12 +1,14 @@
 # Eureka! — Especificação do projeto e divisão para três pessoas
 
-**Versão:** 1.1 — mobile e qualidade de narração  
+**Versão:** 1.2 — mobile, narração e guias de integração
 **Data de referência:** 29/10/2026  
 **Público deste documento:** os três integrantes do grupo e as IAs que os auxiliam.  
 **Estado:** planejamento; nenhuma integração ou cota está confirmada na conta do grupo.  
 **Objetivo da versão inicial:** aplicativo mobile Android/iOS em React Native + Expo, conectado a um backend online, em português brasileiro, que apresenta descobertas científicas e gera episódios curtos após a escolha do usuário.
 
 > Este documento é a referência compartilhada do projeto. Uma IA deve lê-lo por inteiro antes de implementar sua parte. Depois, deve ler os arquivos e as decisões já existentes no repositório. O documento não substitui a revisão humana, os testes ou a confirmação das condições dos serviços.
+
+> Estado da implementação em 02/11/2026: consultar README.md e os guias docs/PESSOA_1_EXPO.md e docs/PESSOA_2_PESQUISA.md. Este plano inclui funcionalidades futuras; os guias distinguem contratos existentes dos ainda propostos. Registros de provedor/voz consolidados em docs/deployment.md.
 
 ## 1. Decisões obrigatórias
 
@@ -92,7 +94,7 @@ Não criar um modelo de IA diferente para cada tema. Os mesmos módulos trabalha
 - Preparar siglas, números, unidades e termos científicos para leitura sem mudar seu significado. Mudança factual exige nova auditoria.
 - Separar direção vocal do texto: o modelo não deve ler instruções, marcações ou nomes de campos. Não acelerar artificialmente o áudio para caber em três minutos.
 - Gemini TTS é candidato, não garantia de naturalidade. Expo reproduz o arquivo; a qualidade depende do modelo, da voz e da direção vocal.
-- No Marco 0, comparar pelo menos duas vozes disponíveis, dentro da cota, com o mesmo trecho contendo termos científicos, números e uma limitação. Os três integrantes avaliam naturalidade, pronúncia, ritmo e fidelidade. Registrar modelo, voz, instruções e resultado em `docs/voice-validation.md`.
+- No Marco 0, comparar pelo menos duas vozes disponíveis, dentro da cota, com o mesmo trecho contendo termos científicos, números e uma limitação. Os três integrantes avaliam naturalidade, pronúncia, ritmo e fidelidade. Registrar modelo, voz, instruções e resultado em `docs/deployment.md`.
 - No Marco 2, ouvir um episódio completo elegível por tema, além de amostras em alto-falantes e fones de Android e iPhone. Reprovar palavras omitidas, distorções, pausas anormais ou efeito robótico perceptível; resolver divergências do grupo antes do aceite.
 - Testes de amostras qualificam a configuração, mas não garantem cada geração futura. Oferecer relato de problema no áudio, investigar e invalidar arquivos confirmados como defeituosos.
 - Se nenhuma opção gratuita atender ao requisito, registrar bloqueio de qualidade. Não trocar silenciosamente por voz do sistema nem ativar cobrança. Regeneração corretiva respeita a cota e o limite de tentativas.
@@ -320,8 +322,8 @@ eureka/
     e2e/
   docs/
     decisions/
-    provider-validation.md
-    voice-validation.md
+    PESSOA_1_EXPO.md
+    PESSOA_2_PESQUISA.md
     mobile-distribution.md
     api-contracts.md
     integration-log.md
@@ -490,7 +492,7 @@ Essa frente tem mais infraestrutura. As pessoas 1 e 2 devem colaborar com testes
 - Confirmar acesso aos modelos de texto e voz, cotas por modelo e disponibilidade de português.
 - Executar teste pequeno de texto e voz apenas após configurar a chave com segurança.
 - Coordenar com o grupo a aprovação das vozes conforme seção 2.4.1. Acesso gratuito sem qualidade natural não conclui esta tarefa.
-- Registrar modelo exato, data do teste, duração/latência, resultado e limitações em `docs/provider-validation.md`.
+- Registrar modelo exato, data do teste, duração/latência, resultado e limitações em `docs/deployment.md`.
 - Diferenciar teste com simulação, teste real local e teste no backend hospedado.
 - Se voz não estiver disponível na modalidade gratuita, registrar bloqueio. Não trocar por áudio falso nem ativar faturamento.
 
