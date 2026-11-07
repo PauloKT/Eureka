@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { requireSession, type AuthEnvironment } from './modules/auth/session';
 import { episodeRoutes } from './modules/episodes/routes';
+import { researchRoutes } from './modules/research/routes';
 import { AppError, errors } from './shared/errors';
 import { ZodError } from 'zod';
 import { bodyLimit } from 'hono/body-limit';
@@ -30,6 +31,7 @@ app.get('/api/v1/themes', (c) => c.json({ themes: [
   { id: 'physics', name: 'Física' },
 ] }));
 
+app.route('/api/v1', researchRoutes);
 app.route('/api/v1', episodeRoutes);
 
 app.notFound((c) => c.json({ error: {

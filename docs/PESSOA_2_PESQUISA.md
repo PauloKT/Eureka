@@ -1,3 +1,5 @@
+> **Guia original da entrega do backend.** As pendências de pesquisa abaixo descrevem o estado anterior. A implementação e o contrato atuais estão em [research-integration.md](research-integration.md).
+
 # Pessoa 2 — guia de implementação para o agente de IA
 
 Estado verificado em 02/11/2026. Paulo (Pessoa 3) fará a integração das entregas.

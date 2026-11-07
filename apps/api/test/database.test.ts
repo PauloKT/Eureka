@@ -25,11 +25,39 @@ beforeAll(async () => {
   const sql = await readFile(new URL('../../../supabase/migrations/202611020001_episode_foundation.sql', import.meta.url), 'utf8');
   await db.exec(sql);
   await db.exec(await readFile(new URL('../../../supabase/migrations/202611020002_recovery_cleanup.sql', import.meta.url),'utf8'));
+  await db.exec(await readFile(new URL('../../../supabase/migrations/202611070003_research.sql', import.meta.url),'utf8'));
   await db.query('insert into public.eureka_selections(id,user_id,theme_id,options) values($1,$2,$3,$4)',
     [selectionId,owner,'space',JSON.stringify([{id:discoveryId,studyKey:'study',topicKey:'topic'}])]);
   await db.exec("insert into public.eureka_model_budgets values ('test-text',100,100),('test-voice',100,100),('blocked',0,0),('limited',2,2)");
 }, 30000);
 afterAll(async () => { await db?.close(); });
+
+describe('research persistence permissions and source pacing', () => {
+  it('shares source slots across themes and denies repeated claims', async () => {
+    const claim = () => db.query<{allowed:boolean}>("select public.eureka_claim_source('arxiv') as allowed");
+    expect((await claim()).rows[0].allowed).toBe(true);
+    expect((await claim()).rows[0].allowed).toBe(false);
+    await db.exec("update public.eureka_source_slots set next_request_at=now()-interval '1 second' where provider='arxiv'");
+    expect((await claim()).rows[0].allowed).toBe(true);
+  });
+  it('keeps independent snapshots per theme and rejects mismatched keys', async () => {
+    for (const theme of ['physics','technology']) await db.query(
+      'insert into public.eureka_reviewed_discoveries(identifier,theme_id,payload,expires_at) values($1,$2,$3,now()+interval \'1 day\')',
+      ['study',theme,JSON.stringify({discovery:{themeId:theme,studyKey:'study'}})]);
+    expect((await db.query("select * from public.eureka_reviewed_discoveries where identifier='study'")).rows).toHaveLength(2);
+    await expect(db.exec("update public.eureka_reviewed_discoveries set theme_id='brain' where theme_id='physics'")).rejects.toThrow();
+  });
+  it('denies direct mobile access to editorial snapshots, caches and limiter RPC', async () => {
+    for (const role of ['anon','authenticated']) {
+      for (const table of ['eureka_reviewed_discoveries','eureka_research_cache','eureka_source_slots']) {
+        const result = await db.query<{allowed:boolean}>('select has_table_privilege($1,$2,\'select\') as allowed',[role,`public.${table}`]);
+        expect(result.rows[0].allowed).toBe(false);
+      }
+      const result = await db.query<{allowed:boolean}>('select has_function_privilege($1,\'public.eureka_claim_source(text)\',\'execute\') as allowed',[role]);
+      expect(result.rows[0].allowed).toBe(false);
+    }
+  });
+});
 
 describe('PostgreSQL: atomicidade, cotas e autorização', () => {
   it('recupera resultado persistido sem nova reserva e respeita dono/lease', async()=>{

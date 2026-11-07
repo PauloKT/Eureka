@@ -44,3 +44,29 @@ export const ApprovedScript = ScriptCandidate.extend({
 export type DiscoveryData = z.infer<typeof Discovery>;
 export type ScriptData = z.infer<typeof ScriptCandidate>;
 export type ApprovedScriptData = z.infer<typeof ApprovedScript>;
+
+export const DiscoverySearchInput = z.object({ themeId: ThemeId }).strict();
+export const ReviewStatus = z.enum(['peer_reviewed', 'preprint', 'institutional_release', 'unknown']);
+export const DiscoverySearchResponse = z.object({
+  selectionSetId: z.string().uuid(), expiresAt: z.string().datetime({offset:true}),
+  options: z.array(Discovery.pick({ id: true, themeId: true, title: true, summary: true, publishedAt: true }).extend({
+    reviewStatus: ReviewStatus, alreadyHeard: z.boolean(),
+    sources: z.array(Source.pick({ id: true, title: true, publisher: true, url: true, publishedAt: true })).min(1).max(8),
+  }).strict()).max(3),
+  partial: z.boolean(),
+  emptyReason: z.enum(['no_eligible_evidence', 'sources_unavailable_or_incomplete']).nullable(),
+}).strict().refine(v => new Set(v.options.map(d => d.id)).size === v.options.length, 'Duplicate discovery')
+  .refine(v => v.options.length ? v.emptyReason === null : v.emptyReason !== null, 'Invalid empty reason');
+
+// Internal editorial snapshot. Never accepted from a mobile request.
+export const ReviewedDiscovery = z.object({
+  discovery: Discovery, reviewStatus: ReviewStatus,
+  reviewedBy: z.string().trim().min(1).max(200), reviewedAt: z.string().datetime({offset:true}),
+  expiresAt: z.string().datetime({offset:true}),
+}).strict().superRefine((v, ctx) => {
+  if (Date.parse(v.expiresAt) <= Date.parse(v.reviewedAt)) ctx.addIssue({code:'custom', message:'Review expiry must follow review'});
+  for (const item of Object.values(v.discovery.evidenceCard)) for (const ref of item.references) {
+    if (!v.discovery.sources.some(s => s.id === ref.sourceId && s.excerpts.some(e => e.id === ref.excerptId)))
+      ctx.addIssue({code:'custom', message:'Evidence reference missing'});
+  }
+});

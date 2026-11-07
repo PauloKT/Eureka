@@ -2,6 +2,7 @@ export class AppError extends Error {
   constructor(public code: string, public status: 400 | 404 | 409 | 422 | 429 | 503 = 503) { super(code); }
 }
 export const errors: Record<string, { status: 400 | 404 | 409 | 422 | 429 | 503; message: string }> = {
+  RESEARCH_UNAVAILABLE: { status: 503, message: 'A pesquisa está temporariamente indisponível.' },
   RETRY_LIMIT_REACHED: { status: 409, message: 'A tentativa corretiva já foi utilizada. Escolha outra descoberta.' },
   INVALID_INPUT: { status: 400, message: 'Confira os dados enviados.' },
   NOT_FOUND: { status: 404, message: 'Recurso não encontrado.' },

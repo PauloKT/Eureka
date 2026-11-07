@@ -1,3 +1,5 @@
+> **Estado atual (07/11/2026):** pesquisa integrada em código. Consulte [Contrato, revisão editorial e publicação](docs/research-integration.md). A migration 003 e o deploy ainda precisam ser aplicados no ambiente publicado.
+
 # Eureka — app científico em áudio
 
 Aplicativo **React Native + Expo para Android/iOS**, com API Hono/Cloudflare e Supabase. Orçamento de serviços: R$ 0. Este repositório contém a entrega inicial da **Pessoa 3 (Paulo)**; mobile e pesquisa real ainda serão integrados.

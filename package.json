@@ -6,7 +6,7 @@
   "engines": { "node": ">=22" },
   "scripts": {
     "dev:api": "npm run dev --workspace @eureka/api",
-    "test": "npm run test --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "test": "node --test test/*.test.mjs && npm run test --workspaces --if-present",
+    "typecheck": "node --check src/discovery-search.mjs && node --check src/research.mjs && node --check src/sources.mjs && node --check src/evidence.mjs && node --check scripts/import-reviewed-discovery.mjs && npm run typecheck --workspaces --if-present"
   }
 }
