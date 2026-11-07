@@ -8,7 +8,7 @@ export const THEME_QUERIES = Object.freeze({
   physics: { primary: ['arxiv', 'openalex'], query: 'physics' },
 });
 const DAY = 86_400_000;
-const isoDay = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(`${v}T00:00:00Z`));
+const isoDay = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(`${v}T00:00:00Z`)) && new Date(`${v}T00:00:00Z`).toISOString().slice(0,10) === v;
 const normalizeUrl = raw => { try { const u = new URL(raw); if (u.protocol !== 'https:') return null; u.hash = ''; return u.toString().replace(/\/$/, ''); } catch { return null; } };
 const key = x => (x.identifier || '').replace(/^https?:\/\/(doi\.org\/)?/i, '').toLowerCase().trim();
 const titleKey = x => (x.title || '').toLocaleLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
@@ -35,10 +35,10 @@ export function eligibility(record, { themeId, now = new Date(), recencyDays = 9
   return { eligible: true, reason: null };
 }
 
-export function rankCandidates(records, { themeId, heardStudyKeys = [], now = new Date(), recencyDays = 90, limit = 3 } = {}) {
+export function rankCandidates(records, { themeId, heardStudyKeys = [], now = new Date(), recencyDays = 90, limit = Infinity } = {}) {
   const deduped = deduplicate(records).map(item => ({ item, check: eligibility(item, { themeId, now, recencyDays }) })).filter(x => x.check.eligible);
   const heard = new Set(heardStudyKeys);
-  return deduped.sort((a, b) => Number(heard.has(a.item.studyKey || a.item.identifier)) - Number(heard.has(b.item.studyKey || b.item.identifier)) || b.item.publishedAt.localeCompare(a.item.publishedAt)).slice(0, Math.min(3, Math.max(0, limit))).map(x => ({ ...x.item, alreadyHeard: heard.has(x.item.studyKey || x.item.identifier) }));
+  return deduped.sort((a, b) => Number(heard.has(a.item.studyKey || a.item.identifier)) - Number(heard.has(b.item.studyKey || b.item.identifier)) || b.item.publishedAt.localeCompare(a.item.publishedAt)).slice(0, Math.max(0, limit)).map(x => ({ ...x.item, alreadyHeard: heard.has(x.item.studyKey || x.item.identifier) }));
 }
 
 export async function searchTheme(themeId, providers, options = {}) {

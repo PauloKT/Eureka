@@ -1,11 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { THEMES, THEME_QUERIES, eligibility, deduplicate, rankCandidates, searchTheme } from '../src/research.mjs';
-import { searchEuropePmc, searchOpenAlex, searchArxiv, SOURCE_ENDPOINTS, requestText } from '../src/sources.mjs';
+import { searchEuropePmc, searchOpenAlex, searchArxiv, searchNasaNtrs, SOURCE_ENDPOINTS, requestText } from '../src/sources.mjs';
 import { createEvidencePackage, buildDiscovery, auditScriptReferences } from '../src/evidence.mjs';
 import { discoverySearch } from '../src/discovery-search.mjs';
 
 const valid = (extra = {}) => ({ title: 'Ensino de Ciência', identifier: 'doi:10.5555/test', url: 'https://doi.org/10.5555/test', publisher: 'Journal', publishedAt: '2026-10-01', abstract: 'O estudo observou uma associação em adultos. O tamanho da amostra foi limitado.', editorialStatus: 'peer_reviewed', access: 'abstract', studyKey: 'doi:10.5555/test', ...extra });
+test('NASA uses real nested publication fields and numeric identifiers without claiming peer review',async()=>{
+  const [r] = await searchNasaNtrs('space',{limit:1,now:new Date('2026-11-07T00:00:00Z'),fetchImpl:async url=>{
+    assert.equal(url.searchParams.get('page.size'),'1');assert.equal(url.searchParams.get('published.gte'),'2026-08-09');
+    return Response.json({results:[{id:20260000001,title:'Test',publications:[{publicationDate:'2026-10-20T00:00:00Z'}],abstract:'Test abstract',modified:'2026-11-06',technicalReviewType:'TECHNICAL_REVIEW_TYPE_NONE',authorAffiliations:[{meta:{author:{name:'Test author'}}}]}]});
+  }});
+  assert.equal(r.identifier,'ntrs:20260000001');assert.equal(r.publishedAt,'2026-10-20');assert.equal(r.editorialStatus,'unknown');assert.deepEqual(r.authors,['Test author']);
+});
+test('OpenAlex reconstructs available abstracts and requests a bounded date window',async()=>{
+  const [r] = await searchOpenAlex('physics',{now:new Date('2026-11-07T00:00:00Z'),fetchImpl:async url=>{
+    assert.match(url.searchParams.get('filter'),/from_publication_date:2026-08-09/);
+    return Response.json({results:[{id:'https://openalex.org/W1',doi:'https://doi.org/10.1/test',title:'Test',publication_date:'2026-11-01',type:'preprint',abstract_inverted_index:{Test:[0],evidence:[1]}}]});
+  }});
+  assert.equal(r.abstract,'Test evidence');assert.equal(r.identifier,'10.1/test');assert.equal(r.editorialStatus,'preprint');
+});
 test('mantém os seis temas e os provedores previstos por tema', () => {
   assert.deepEqual(THEMES, ['space','health','brain','technology','nature','physics']);
   for (const theme of THEMES) assert.ok(THEME_QUERIES[theme].primary.length > 0);

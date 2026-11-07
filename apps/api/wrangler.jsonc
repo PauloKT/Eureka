@@ -1,0 +1,11 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "eureka-api",
+  "main": "src/worker.ts",
+  "triggers": { "crons": ["0 5 * * *"] },
+  "compatibility_date": "2026-10-29",
+  "vars": {
+    "LIVE_AI_ENABLED": "false",
+    "FOLLOWUPS_ENABLED": "false"
+  }
+}
