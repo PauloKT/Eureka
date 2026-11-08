@@ -1,8 +1,10 @@
+> **Mobile (08/11/2026):** protótipo da Pessoa 1 integrado em `apps/mobile`. Execute `npm run dev:mobile`. Busca, reprodução e histórico são simulações locais; login e integração HTTP ainda não foram implementados. Veja [estado da entrega](apps/mobile/README.md).
+
 > **Estado atual (07/11/2026):** pesquisa integrada em código. Consulte [Contrato, revisão editorial e publicação](docs/research-integration.md). A migration 003 e o deploy ainda precisam ser aplicados no ambiente publicado.
 
 # Eureka — app científico em áudio
 
-Aplicativo **React Native + Expo para Android/iOS**, com API Hono/Cloudflare e Supabase. Orçamento de serviços: R$ 0. Este repositório contém a entrega inicial da **Pessoa 3 (Paulo)**; mobile e pesquisa real ainda serão integrados.
+Aplicativo **React Native + Expo para Android/iOS**, com API Hono/Cloudflare e Supabase. Orçamento de serviços: R$ 0. Este repositório contém o backend das Pessoas 2 e 3 e a interface demonstrativa da Pessoa 1.
 
 ## Leia sua frente
 
@@ -20,7 +22,7 @@ API publicada: `https://eureka-api.eureka-api.workers.dev/api/v1`.
 
 Implementados: autenticação, temas, escolha do episódio, roteiro com referências/revisão, voz Kore, WAV até 180s, Storage privado, histórico, cotas atômicas, recuperação, uma tentativa corretiva e limpeza agendada. Migrations 001 e 002 aplicadas no projeto compartilhado. HTTPS e recusa de acesso anônimo verificados; 34 testes offline passaram na última validação funcional.
 
-**Geração e aprofundamentos continuam desligados.** Não há ainda app Expo, busca real, episódio completo validado em celular ou endpoints de aprofundamento. Amostra de voz aprovada por Paulo; isso não substitui validação dos episódios completos. A auditoria por IA não certifica verdade científica.
+**Geração e aprofundamentos continuam desligados.** Há pesquisa integrada em código e uma interface Expo demonstrativa. Ainda faltam conexão do mobile à API, episódio completo validado em celular e endpoints de aprofundamento. Amostra de voz aprovada por Paulo; isso não substitui validação dos episódios completos. A auditoria por IA não certifica verdade científica.
 
 ## Desenvolver
 
@@ -41,8 +43,8 @@ O Expo usa a base HTTPS da API e apenas a URL/chave publicável do Supabase, nun
 
 ## Organização
 
-- `apps/api`: backend da Pessoa 3 e futura pesquisa da Pessoa 2.
-- `apps/mobile`: será criado pela Pessoa 1.
+- `apps/api`: backend da Pessoa 3 com pesquisa da Pessoa 2 integrada.
+- `apps/mobile`: interface Expo da Pessoa 1, com dados e players simulados.
 - `packages/contracts`: schemas e tipos compartilhados.
 - `supabase/migrations`: SQL versionado; não reaplicar no projeto compartilhado nem editar migration já aplicada.
 - `scripts`: ativação local do Node, smoke de conexão Supabase e configuração de segredos Cloudflare. Operações reais não são testes automáticos.

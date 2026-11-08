@@ -2,11 +2,17 @@
   "name": "eureka",
   "private": true,
   "version": "0.1.0",
-  "workspaces": ["apps/*", "packages/*"],
-  "engines": { "node": ">=22" },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev:api": "npm run dev --workspace @eureka/api",
     "test": "node --test test/*.test.mjs && npm run test --workspaces --if-present",
-    "typecheck": "node --check src/discovery-search.mjs && node --check src/research.mjs && node --check src/sources.mjs && node --check src/evidence.mjs && node --check scripts/import-reviewed-discovery.mjs && npm run typecheck --workspaces --if-present"
+    "typecheck": "node --check src/discovery-search.mjs && node --check src/research.mjs && node --check src/sources.mjs && node --check src/evidence.mjs && node --check scripts/import-reviewed-discovery.mjs && npm run typecheck --workspaces --if-present",
+    "dev:mobile": "npm run start --workspace @eureka/mobile"
   }
 }
