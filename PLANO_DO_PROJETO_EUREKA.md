@@ -3,7 +3,7 @@
 **Versão:** 1.1 — mobile e qualidade de narração  
 **Data de referência:** 29/10/2026  
 **Público deste documento:** os três integrantes do grupo e as IAs que os auxiliam.  
-**Estado:** planejamento; nenhuma integração ou cota está confirmada na conta do grupo.  
+**Estado:** especificação e critérios de aceite; progresso real e limitações em `docs/deployment.md`.
 **Objetivo da versão inicial:** aplicativo mobile Android/iOS em React Native + Expo, conectado a um backend online, em português brasileiro, que apresenta descobertas científicas e gera episódios curtos após a escolha do usuário.
 
 > Este documento é a referência compartilhada do projeto. Uma IA deve lê-lo por inteiro antes de implementar sua parte. Depois, deve ler os arquivos e as decisões já existentes no repositório. O documento não substitui a revisão humana, os testes ou a confirmação das condições dos serviços.

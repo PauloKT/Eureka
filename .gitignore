@@ -1,0 +1,11 @@
+node_modules/
+.tools/
+.env
+.env.*
+.dev.vars
+.dev.vars.*
+.expo/
+dist/
+build/
+coverage/
+*.log

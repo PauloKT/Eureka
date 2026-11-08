@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "Eureka",
+    "slug": "eureka-expo",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "plugins": [
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": true
+        }
+      ],
+      "expo-secure-store",
+      "expo-image",
+      "expo-sharing"
+    ],
+    "android": {
+      "package": "com.eureka.ciencia"
+    }
+  }
+}
