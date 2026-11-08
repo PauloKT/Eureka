@@ -6,6 +6,7 @@ export type Bindings = {
   GEMINI_API_KEY?: string; GEMINI_TEXT_MODEL?: string; GEMINI_TTS_MODEL?: string;
   LIVE_AI_ENABLED?: string;
   RECENCY_DAYS?: string;
+  AUTO_RESEARCH_ENABLED?: string;
 };
 export class Store {
   private base: URL;
@@ -23,7 +24,7 @@ export class Store {
       const response = await fetch(new URL(path, this.base), {
         method, headers: { ...this.headers, 'Content-Type': 'application/json', Prefer: 'return=representation' },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-        signal: AbortSignal.timeout(15000), redirect: 'error',
+        signal: AbortSignal.timeout(15000), redirect: 'manual',
       });
       if (!response.ok) {
         const error = await response.json().catch(() => ({})) as { message?: string };
@@ -75,7 +76,7 @@ export class Store {
     try {
       const response = await fetch(new URL(`/rest/v1/${table}`, this.base), {
         method: 'POST', headers: { ...this.headers, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' },
-        body: JSON.stringify(body), signal: AbortSignal.timeout(15000), redirect: 'error',
+        body: JSON.stringify(body), signal: AbortSignal.timeout(15000), redirect: 'manual',
       });
       if (!response.ok) throw knownError('STORAGE_UNAVAILABLE');
     } catch { throw knownError('STORAGE_UNAVAILABLE'); }
@@ -100,7 +101,7 @@ export class Store {
     try {
       const response = await fetch(new URL(`/storage/v1/object/eureka-audio/${path}`, this.base), {
         method: 'POST', headers: { ...this.headers, 'Content-Type': 'audio/wav', 'x-upsert': 'false' },
-        body: audio as unknown as BodyInit, signal: AbortSignal.timeout(30000), redirect: 'error',
+        body: audio as unknown as BodyInit, signal: AbortSignal.timeout(30000), redirect: 'manual',
       });
       if (!response.ok) throw new AppError('STORAGE_UNAVAILABLE');
     } catch { throw new AppError('STORAGE_UNAVAILABLE'); }
@@ -123,7 +124,7 @@ export class Store {
   async storedAudioMatches(path: string, length: number, digest: string) {
     const { url } = await this.signedUrl(path);
     try {
-      const response = await fetch(url, { signal: AbortSignal.timeout(30000), redirect: 'error' });
+      const response = await fetch(url, { signal: AbortSignal.timeout(30000), redirect: 'manual' });
       if (!response.ok || !response.body || length < 44 || length > 20000000) throw new Error();
       const reader = response.body.getReader(); const chunks: Uint8Array[] = []; let size = 0;
       while (true) { const {value,done} = await reader.read(); if (done) break; size += value.length;

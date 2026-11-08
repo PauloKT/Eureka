@@ -3,6 +3,7 @@ import { DiscoverySearchInput, DiscoverySearchResponse } from '@eureka/contracts
 import { requireSession, type AuthEnvironment } from '../auth/session';
 import { Store } from '../../shared/persistence';
 import { knownError } from '../../shared/errors';
+import { prepareDiscoveries } from './prepare';
 import { discoverySearch } from '../../../../../src/discovery-search.mjs';
 import { searchEuropePmc, searchArxiv, searchOpenAlex, searchNasaNtrs } from '../../../../../src/sources.mjs';
 
@@ -21,6 +22,7 @@ researchRoutes.post('/discovery-searches', requireSession, async c => {
     providers: { europepmc: provider('europepmc', searchEuropePmc), arxiv: provider('arxiv', searchArxiv),
       openalex: provider('openalex', searchOpenAlex), nasa_ntrs: provider('nasa_ntrs', searchNasaNtrs) },
     cache: { get: key => store.getResearchCache(key), set: (key, value) => store.saveResearchCache(key, value) },
+    prepareDiscoveries: (records: any[], context: {themeId:string;userId:string}) => prepareDiscoveries(c.env,store,records,context),
   }).catch(error => {
     if (error instanceof Error && error.message === 'SOURCES_UNAVAILABLE') throw knownError('RESEARCH_UNAVAILABLE');
     throw error;

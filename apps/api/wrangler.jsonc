@@ -5,7 +5,8 @@
   "triggers": { "crons": ["0 5 * * *"] },
   "compatibility_date": "2026-10-29",
   "vars": {
-    "LIVE_AI_ENABLED": "false",
+    "LIVE_AI_ENABLED": "true",
+    "AUTO_RESEARCH_ENABLED": "true",
     "FOLLOWUPS_ENABLED": "false"
   }
 }

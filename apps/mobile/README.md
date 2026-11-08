@@ -1,34 +1,29 @@
-# Eureka mobile — protótipo demonstrativo
+# Eureka mobile
 
-Entrega da Pessoa 1 integrada ao monorepo em 08/11/2026. O código original foi movido da raiz para este workspace, preservando a API, os contratos e a pesquisa existentes.
+Interface conectada ao Supabase Auth e à API HTTPS. Dados de demonstração foram removidos do aplicativo.
 
-## Executar
+## Testar no Android
 
-Na raiz do repositório, com Node.js compatível com as dependências:
+1. Instale um Expo Go compatível com Expo SDK 58.
+2. Configure `apps/mobile/.env` a partir de `.env.example` (somente valores públicos).
+3. Na raiz, execute `npm run dev:mobile`.
+4. Mantenha celular e computador na mesma rede e leia o QR code no Expo Go. Se o firewall bloquear o Metro, permita acesso na rede privada.
+5. Entre com uma conta de **Authentication do projeto**, que é diferente da conta administrativa do painel Supabase.
+6. Escolha um tema, busque, selecione uma descoberta, gere o roteiro e depois o áudio. A escuta é registrada ao terminar a reprodução.
 
-```sh
-npm ci
-npm run dev:mobile
-```
+O piloto é fechado. O responsável cria/confirma contas de teste em Authentication; senhas não devem ser compartilhadas no chat. O app não altera políticas de cadastro do projeto.
 
-Abra em um Expo Go compatível com SDK 58 ou emulador. `npm run android --workspace @eureka/mobile` e `npm run ios --workspace @eureka/mobile` iniciam o Expo para essas plataformas; o simulador iOS exige macOS.
+## Retomada e erros
 
-## Escopo real da entrega
+- Reabrir consulta o episódio salvo; não inicia geração.
+- Se a conexão cair, use **Atualizar estado**. **Recuperar resultado preservado** não chama IA.
+- **Preparar tentativa corretiva** só funciona quando o servidor permite; depois é necessário tocar em Gerar.
+- Renovar acesso ao áudio obtém outra URL assinada, sem gerar voz novamente.
+- Áudio expirado mantém transcrição e histórico. Somente um player fica montado por vez.
+- Sessão é persistida no SecureStore; intenção e chaves de idempotência ficam no armazenamento local por usuário.
 
-- Interface React Native em JavaScript, seleção de temas, cartões, escolha explícita/surpresa e ficha demonstrativa.
-- Descobertas e datas são fixtures locais marcadas MOCK. Não há requisições HTTP, autenticação Supabase ou persistência.
-- Players são temporizadores visuais, sem arquivo de áudio. Podem funcionar simultaneamente; não são o player de produção.
-- Histórico em memória registra o início da simulação, não a conclusão de uma escuta real.
-- Aprofundamentos são demonstrações locais; não existem endpoints correspondentes.
+## Verificações
 
-## Pendências para integração funcional
+`npm test` na raiz roda testes de pesquisa, API, PostgreSQL local, fluxo mobile e componentes com Jest/Testing Library. Os testes de componentes usam rede simulada; o app em execução utiliza somente os serviços configurados.
 
-Seguir `../../docs/PESSOA_1_EXPO.md` e os contratos atuais de `@eureka/contracts`: implementar login/sessão, seis temas canônicos (incluindo Cérebro), busca autenticada, seleção salva no servidor, idempotência e retomada, geração respeitando capabilities, expo-audio, referências/transcrição e histórico de conclusão. Os temas atuais do protótipo não correspondem aos IDs da API.
-
-Não usar os mocks como fallback de produção. O endpoint de pesquisa já existe no código integrado; sua publicação depende da migration 003 e do deploy descritos em `../../docs/research-integration.md`.
-
-Não foram fornecidos testes mobile nem evidência de validação em Android/iPhone, leitores de tela ou build nativo. O merge não habilita geração, não faz deploy e não representa um fluxo completo aprovado.
-
-## Verificação da integração
-
-Em 08/11/2026: checagem de tipos e 64 testes existentes passaram (18 de pesquisa/integração e 46 da API). O Expo exportou os bundles Android e iOS com sucesso. A checagem offline das dependências não apontou incompatibilidades com o SDK instalado. Isso não substitui teste em aparelho. Os arquivos do backend e as versões de suas dependências existentes foram preservados.
+Exportação de bundles: `npm exec --workspace @eureka/mobile -- expo export --platform android --platform ios`. Isso não gera APK/IPA. Build nativo, comportamento com tela bloqueada, fones, chamadas, TalkBack/VoiceOver e iPhone precisam de validação em aparelhos; consulte `../../docs/manual-qa.md`.

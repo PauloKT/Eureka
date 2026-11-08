@@ -10,4 +10,5 @@ export function discoverySearch(args: {
   userId: string; themeId: string; providers: Record<string, (query: string, options: {limit: number}) => Promise<unknown[]>>;
   store: ResearchStore; cache?: {get(key: string): Promise<unknown>; set(key: string, value: {cachedUntil: string}): Promise<void>};
   now?: Date; recencyDays?: number;
+  prepareDiscoveries?: (records: any[], context: {themeId:string;userId:string}) => Promise<z.infer<typeof ReviewedDiscovery>[]>;
 }): Promise<z.infer<typeof DiscoverySearchResponse>>;

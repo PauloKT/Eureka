@@ -8,7 +8,7 @@
 
 > Este documento é a referência compartilhada do projeto. Uma IA deve lê-lo por inteiro antes de implementar sua parte. Depois, deve ler os arquivos e as decisões já existentes no repositório. O documento não substitui a revisão humana, os testes ou a confirmação das condições dos serviços.
 
-> Estado da implementação em 02/11/2026: consultar README.md e os guias docs/PESSOA_1_EXPO.md e docs/PESSOA_2_PESQUISA.md. Este plano inclui funcionalidades futuras; os guias distinguem contratos existentes dos ainda propostos. Registros de provedor/voz consolidados em docs/deployment.md.
+> Estado atual (08/11/2026): consulte README.md, apps/mobile/README.md e docs/research-integration.md. Este plano mantém os critérios de aceite, incluindo funcionalidades futuras. Por decisão de Paulo, a preparação de evidências na busca agora é automática, com cota compartilhada, trechos verificáveis e auditoria semântica; não exige cadastro humano prévio. A revisão humana permanece no aceite de qualidade dos episódios. Guias antigos por pessoa e resultados históricos foram substituídos pela documentação atual.
 
 ## 1. Decisões obrigatórias
 

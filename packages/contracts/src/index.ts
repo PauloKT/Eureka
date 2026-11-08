@@ -50,7 +50,7 @@ export const ReviewStatus = z.enum(['peer_reviewed', 'preprint', 'institutional_
 export const DiscoverySearchResponse = z.object({
   selectionSetId: z.string().uuid(), expiresAt: z.string().datetime({offset:true}),
   options: z.array(Discovery.pick({ id: true, themeId: true, title: true, summary: true, publishedAt: true }).extend({
-    reviewStatus: ReviewStatus, alreadyHeard: z.boolean(),
+    reviewStatus: ReviewStatus, alreadyHeard: z.boolean(), evidenceReview: z.enum(['human','automated']).optional(),
     sources: z.array(Source.pick({ id: true, title: true, publisher: true, url: true, publishedAt: true })).min(1).max(8),
   }).strict()).max(3),
   partial: z.boolean(),
@@ -62,6 +62,7 @@ export const DiscoverySearchResponse = z.object({
 export const ReviewedDiscovery = z.object({
   discovery: Discovery, reviewStatus: ReviewStatus,
   reviewedBy: z.string().trim().min(1).max(200), reviewedAt: z.string().datetime({offset:true}),
+  reviewMethod: z.enum(['human','automated']).optional(),
   expiresAt: z.string().datetime({offset:true}),
 }).strict().superRefine((v, ctx) => {
   if (Date.parse(v.expiresAt) <= Date.parse(v.reviewedAt)) ctx.addIssue({code:'custom', message:'Review expiry must follow review'});

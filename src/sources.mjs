@@ -48,7 +48,7 @@ export async function requestText(url, { fetchImpl = fetch, timeoutMs = TIMEOUT_
     throw new Error('SOURCE_URL_NOT_ALLOWED');
   }
   await pace(parsed.hostname);
-  const response = await fetchImpl(parsed, { signal: AbortSignal.timeout(timeoutMs), redirect: 'error', headers: { Accept: 'application/json, application/atom+xml, application/xml' } });
+  const response = await fetchImpl(parsed, { signal: AbortSignal.timeout(timeoutMs), redirect: 'manual', headers: { Accept: 'application/json, application/atom+xml, application/xml' } });
   if (!response.ok) throw new Error(`SOURCE_HTTP_${response.status}`);
   return readBounded(response);
 }

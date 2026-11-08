@@ -1,60 +1,27 @@
-# Pesquisa integrada — contrato para as Pessoas 1, 2 e 3
+# Pesquisa e evidências automáticas
 
-Implementação de 07/11/2026. Esta página substitui as pendências de integração descritas no guia inicial da Pessoa 2.
+Decisão de 08/11/2026: a busca deve preparar suas próprias opções a partir das fontes; não depender de cadastro editorial humano. Revisão humana continua sendo parte do aceite dos primeiros episódios, sem bloquear cada busca.
 
-## API para a Pessoa 1
+## Fluxo
 
-`POST /api/v1/discovery-searches`, com `Authorization: Bearer <sessão Supabase>` e JSON estrito `{ "themeId": "physics" }`.
-Aceita os seis IDs de `ThemeId`. Não aceita identidade, estudos ou evidências enviados pelo celular.
+`POST /api/v1/discovery-searches`, autenticado, recebe somente `{themeId}`. Consulta Europe PMC, arXiv, NASA NTRS e/ou OpenAlex conforme o tema; filtra datas, duplicatas, conteúdo insuficiente e preprints de Saúde/Cérebro.
 
-A resposta segue `DiscoverySearchResponse` em `packages/contracts/src/index.ts`: `selectionSetId`, `expiresAt`, até três `options`, `partial` e `emptyReason`. As opções contêm ID, tema, título, resumo, data, `reviewStatus`, `alreadyHeard` e referências públicas. Trechos internos, hashes e nomes dos revisores não são enviados ao app.
+O cache global guarda metadados públicos por 15 minutos (30 segundos se houver falhas parciais). Até oito candidatos sem pacote válido seguem para preparação em lote. A primeira chamada Gemini produz até três títulos/resumos/fichas em português e trechos literais; a segunda verifica pertinência e suporte de título, resumo, resultado, evidência e limitação. O servidor confere os trechos contra o resumo original e define IDs, URLs e datas. Nenhum roteiro completo ou áudio é produzido na busca.
 
-- `options: []` + `no_eligible_evidence`: as fontes responderam, mas não há evidências elegíveis e revisadas para oferecer.
-- `partial: true`: alguma fonte falhou ou estava ocupada; apresentar a busca como incompleta.
-- HTTP 503 `RESEARCH_UNAVAILABLE`: nenhuma fonte pôde responder; permitir nova tentativa depois, sem afirmar ausência de estudos.
-- HTTP 503 `STORAGE_UNAVAILABLE`: persistência indisponível; nenhuma opção é entregue sem seleção gravada.
-- HTTP 400: JSON inválido, campos extras ou tema desconhecido. HTTP 401: sessão ausente/inválida.
+Pacotes são identificados como `reviewMethod: automated`, sem alegação de revisão humana. `reviewStatus` é independente: preprint ou status editorial desconhecido, salvo evidência editorial explícita. A revisão por IA não certifica verdade científica.
 
-Escolha: enviar `POST /api/v1/episodes` com `Idempotency-Key` e `{mode:"chosen",selectionSetId,discoveryId}`; surpresa usa `{mode:"surprise",selectionSetId}`. Esses passos não chamam Gemini. A seleção expira em 24 horas, conforme a fundação existente.
+Uma preparação reserva duas chamadas no mesmo orçamento dos roteiros, com trava atômica no banco. Resultado concluído é reutilizado; uma falha incerta não dispara repetição automática. A reserva permanece contabilizada mesmo quando a revisão reprova candidatos. A preparação é armazenada por conteúdo, tema, modelo, versão e dia. Os pacotes expiram em 24h; não se altera a data original dos estudos.
 
-## Persistência e revisão editorial
+## Contrato público
 
-Aplicar a nova migration `202611070003_research.sql` **antes de publicar o Worker integrado**. Ela cria cache de candidatos, snapshots editoriais por `(identifier, theme_id)` e slots de consulta compartilhados entre instâncias. As migrations 001/002 não foram alteradas.
+Resposta: `{selectionSetId,expiresAt,options,partial,emptyReason}`. Cada opção contém ID, tema, título, resumo, publicação, status editorial, `evidenceReview`, indicação de escuta anterior e referências públicas. Trechos internos e identidade de usuários não são enviados ao Gemini nem expostos no app.
 
-As tabelas novas têm RLS e acesso somente pelo serviço. Histórico é consultado pelo usuário autenticado e pelo tema, com paginação. Cache global contém apenas metadados das fontes, nunca histórico ou ranking personalizado. TTL de resultados completos: 15 minutos; incompletos: 30 segundos. A leitura sempre verifica expiração. Slots atômicos permitem no máximo uma chamada por provedor a cada dez segundos entre Workers; ocupação é falha parcial explícita.
+`options: []` com `no_eligible_evidence` significa ausência de pacote suficientemente sustentado. `sources_unavailable_or_incomplete` identifica busca incompleta. Falha total de fontes retorna `RESEARCH_UNAVAILABLE`; cota esgotada retorna `QUOTA_EXHAUSTED`. A busca nunca inventa cartões para preencher a tela.
 
-O módulo não inventa revisão científica. Um responsável prepara o pacote com `createEvidencePackage` e `buildDiscovery`, verifica os trechos e redige título, resumo e ficha em português. Só depois registra um `ReviewedDiscovery` com:
+Escolha: `POST /episodes` com `Idempotency-Key` e `{mode:"chosen",selectionSetId,discoveryId}` ou `{mode:"surprise",selectionSetId}`. Não chama IA. Roteiro, áudio, acesso, recuperação e histórico usam as rotas em `apps/api/src/modules/episodes/routes.ts` e os schemas de `@eureka/contracts`.
 
-```text
-{ discovery, reviewStatus, reviewedBy, reviewedAt, expiresAt }
-```
+## Banco e configuração
 
-`reviewedBy` identifica quem revisou; não é uma aprovação automática do sistema. `peer_reviewed` exige comprovação editorial independente. O schema verifica estrutura/referências, não equivalência científica das afirmações. Datas de revisão e validade são verificadas na ingestão e no consumo.
+As migrations 001/002/003 já foram aplicadas. A automação requer `202611080004_automatic_research.sql`, que acrescenta reservas da pesquisa e soma essas reservas às dos episódios. Aplicar uma vez, antes de publicar `AUTO_RESEARCH_ENABLED=true`. Não reaplicar migrations anteriores nem elevar cotas para contornar falhas.
 
-Validar um JSON revisado, sem enviar nada:
-
-```sh
-node scripts/import-reviewed-discovery.mjs reviewed.json
-```
-
-Após revisão humana, importar usando variáveis de ambiente **do servidor** `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`:
-
-```sh
-node scripts/import-reviewed-discovery.mjs reviewed.json --write
-```
-
-Não há endpoint público de aprovação ou importação. Nunca guardar chaves no JSON nem no app. Nenhum snapshot fictício é importado pelos testes. Sem pacote editorial aprovado, uma fonte pode retornar estudos e a API ainda oferecer zero opções. Isso preserva a exigência de evidências e deve ser considerado no piloto.
-
-## Fontes e limites
-
-Europe PMC, arXiv, NASA NTRS e OpenAlex têm adaptadores conectados. Cada consulta pede até dez registros e uma janela de publicação de `RECENCY_DAYS` (padrão 90, permitido 1–365). Data ausente, futura ou inválida não vira a data da coleta. Resultados sem abstract são inelegíveis. OpenAlex reconstrói o abstract somente quando o índice invertido existe; o índice não comprova revisão por pares. NASA usa `publications[].publicationDate`, identifica documentos numéricos e não interpreta revisão técnica como revisão por pares.
-
-São usados HTTPS, allowlist, recusa de redirects, timeout de oito segundos e máximo de 1 MB. Consultas públicas limitadas confirmaram respostas dos quatro provedores em 07/11/2026; disponibilidade, cobertura temática e quotas podem variar. O primeiro teste Europe PMC com um único item retornou lista vazia apesar de `hitCount` positivo; a consulta com dez registros retornou estudos e abstracts. Não se amplia a janela para preencher cartões.
-
-Referências de protocolo: [NASA OpenAPI](https://sti.nasa.gov/docs/20221122_OpenAPI_Documentation.pdf), [arXiv API](https://info.arxiv.org/help/api/user-manual.html), [Europe PMC REST](https://europepmc.org/RestfulWebService), [OpenAlex](https://docs.openalex.org/).
-
-## Verificação e publicação
-
-`npm ci`, `npm run typecheck` e `npm test` executam a configuração compartilhada, regressões de pesquisa, autenticação, persistência e o fluxo pesquisa → seleção → escolha. Os testes não consomem serviços reais. Há testes PostgreSQL locais da nova migration, isolamento editorial por tema, permissões e slots compartilhados.
-
-Merge de código não faz deploy nem aplica SQL. Esta integração não habilita IA, não altera cotas Gemini e não cria revisão automática de artigos. Antes do piloto publicado: aplicar migration 003, importar evidências efetivamente revisadas, publicar o Worker e validar com sessão real. A Pessoa 1 já pode implementar contra o contrato compartilhado e testar localmente.
+`LIVE_AI_ENABLED` permite IA; `AUTO_RESEARCH_ENABLED` permite preparação automática. As duas precisam estar ativas, com modelo/chave configurados. Preparação usa o adaptador Gemini central e não usa ferramentas de pesquisa pagas.

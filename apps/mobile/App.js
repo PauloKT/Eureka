@@ -1,433 +1,148 @@
-import React, { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-
-const C = { bg: "#050706", card: "#121713", raised: "#1A211D", line: "#29342D", text: "#F2F5F2", muted: "#9CA9A0", green: "#69C895", darkGreen: "#1D6744", mint: "#173626", error: "#F2A18D" };
-
-const TOPICS = [
-  ["Astronomia e espaço", "🪐"],
-  ["Biologia e biodiversidade", "🦋"],
-  ["Saúde e medicina", "🫀"],
-  ["Meio ambiente e clima", "🌱"],
-  ["Física e química", "⚗️"],
-  ["Computação e robótica", "🤖"],
-];
-
-const SAMPLE = {
-  "Astronomia e espaço": [
-    ["O universo está se expandindo mais rápido do que esperávamos?", "Uma pergunta em aberto na cosmologia: diferentes métodos para estimar a expansão do universo chegam a resultados distintos."],
-    ["Planetas errantes viajam sem uma estrela", "Explore como astrônomos procuram mundos que não parecem orbitar uma estrela."],
-    ["A Lua também tem pequenos terremotos", "Missões lunares encontraram sinais de atividade sísmica e novas perguntas sobre o interior da Lua."],
-  ],
-  "Biologia e biodiversidade": [
-    ["Florestas têm redes subterrâneas de fungos?", "Fungos e raízes interagem no solo. Pesquisadores investigam como essas relações funcionam nos ecossistemas."],
-    ["Polvos editam o próprio RNA para lidar com o frio", "Um exemplo de como alguns animais podem ajustar moléculas envolvidas no funcionamento de suas células."],
-    ["O canto das baleias muda com o ambiente", "Bioacústica ajuda pesquisadores a acompanhar vocalizações, migrações e mudanças no ambiente marinho."],
-  ],
-  "Saúde e medicina": [
-    ["O que o sono faz com a memória?", "Estudos investigam como diferentes fases do sono participam da consolidação de memórias."],
-    ["Bactérias intestinais e medicamentos", "A microbiota pode interagir com alguns medicamentos; as aplicações clínicas seguem em estudo."],
-    ["Por que a dor pode persistir depois da lesão?", "Pesquisas sobre dor crônica investigam mudanças no sistema nervoso e diferenças entre pessoas."],
-  ],
-  "Meio ambiente e clima": [
-    ["Recifes podem encontrar refúgio em águas profundas?", "Cientistas estudam se áreas mais profundas podem ajudar a proteger espécies de coral sob pressão climática."],
-    ["Como as cidades podem reduzir o calor", "Árvores, sombra e materiais urbanos são algumas das estratégias estudadas para reduzir ilhas de calor."],
-    ["O solo guarda grandes estoques de carbono", "O carbono do solo tem papel importante nos ecossistemas e no ciclo global do carbono."],
-  ],
-  "Física e química": [
-    ["Cristais do tempo: padrões que se repetem", "Sistemas quânticos podem apresentar padrões periódicos no tempo; o nome não descreve uma máquina de movimento perpétuo."],
-    ["O caminho dos íons pode inspirar baterias melhores", "A estrutura dos materiais e o movimento de íons são estudados para entender o desempenho de baterias."],
-    ["Vidro é sólido ou líquido?", "O vidro é um sólido amorfo, com uma estrutura diferente da organização regular de um cristal."],
-  ],
-  "Computação e robótica": [
-    ["Robôs podem aprender tarefas observando vídeos?", "Pesquisadores testam como demonstrações podem ensinar habilidades a robôs e quais são os limites dessa abordagem."],
-    ["Computadores quânticos e correção de erros", "Qubits são sensíveis a ruído; códigos de correção são uma área ativa de pesquisa."],
-    ["Sensores dão tato às mãos robóticas", "Sensores táteis ajudam robôs a detectar pressão e contato ao manipular objetos."],
-  ],
-};
-
-const QUESTIONS = [
-  "Como os pesquisadores estudam esse fenômeno?",
-  "O que ainda falta descobrir?",
-  "Como isso pode afetar o nosso futuro?",
-];
-
-function makeSample(topic) {
-  return SAMPLE[topic].map((entry, index) => ({
-    id: topic + "-" + index,
-    title: entry[0],
-    summary: entry[1],
-    date: ["18 out 2026", "12 out 2026", "03 out 2026"][index],
-    source: "Mock de interface · fonte científica não conectada",
-    known: "A evidência disponível será resumida aqui quando a busca científica for conectada.",
-    unknown: "Limitações e perguntas abertas serão preenchidas com base nas fontes verificadas.",
-    questions: QUESTIONS,
-  }));
-}
-
-// Substituir esta função pela API quando o contrato estiver disponível.
-async function getDiscoveriesMock(topic) {
-  await new Promise((resolve) => setTimeout(resolve, 450));
-  if (!SAMPLE[topic]) throw new Error("Tema indisponível");
-  return makeSample(topic).slice(0, 3);
-}
-
-function Button({ label, onPress, secondary, disabled }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ disabled }}
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.button,
-        secondary ? styles.secondaryButton : styles.primaryButton,
-        disabled && styles.disabled,
-        pressed && !disabled && styles.pressed,
-      ]}
-    >
-      <Text style={[styles.buttonText, secondary && styles.secondaryButtonText]}>{label}</Text>
-    </Pressable>
-  );
-}
-
-function Player({ label, duration, onStart }) {
-  const [playing, setPlaying] = useState(false);
-  const [position, setPosition] = useState(0);
-
-  useEffect(() => {
-    if (!playing) return undefined;
-    const timer = setInterval(() => {
-      setPosition((current) => {
-        if (current + 1 >= duration) {
-          clearInterval(timer);
-          setPlaying(false);
-          return duration;
-        }
-        return current + 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [playing, duration]);
-
-  const toggle = () => {
-    if (position >= duration) setPosition(0);
-    const next = !playing;
-    setPlaying(next);
-    if (next && onStart) onStart();
-  };
-
-  return (
-    <View style={styles.player}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={(playing ? "Pausar " : "Reproduzir ") + label}
-        onPress={toggle}
-        style={styles.playButton}
-      >
-        <Text style={styles.playIcon}>{playing ? "Ⅱ" : "▶"}</Text>
-      </Pressable>
-      <View style={styles.playerContent}>
-        <Text style={styles.playerLabel}>{label}</Text>
-        <Text style={styles.caption}>Player de demonstração · áudio não incluído</Text>
-        <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: duration, now: position }} style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: (position / duration * 100) + "%" }]} />
-        </View>
-      </View>
-      <Text style={styles.time}>{time(position)} /{"\n"}{time(duration)}</Text>
-    </View>
-  );
-}
-
-function time(seconds) {
-  return Math.floor(seconds / 60) + ":" + String(seconds % 60).padStart(2, "0");
-}
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, AppState, BackHandler, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StatusBar, Text, TextInput, View } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { randomUUID } from 'expo-crypto';
+import { DiscoverySearchResponse } from '@eureka/contracts';
+import { api, configError, supabase } from './src/client';
+import { audioExpired, createEpisodeFlow, formatDate, stageFor } from './src/api.mjs';
+import AudioPlayer from './src/AudioPlayer';
+import { Button, Notice, colors, s } from './src/ui';
+const THEMES = [{ id: 'space', name: 'Espaço', icon: '🪐' }, { id: 'health', name: 'Saúde', icon: '🫀' }, { id: 'brain', name: 'Cérebro', icon: '🧠' }, { id: 'technology', name: 'Tecnologia', icon: '🤖' }, { id: 'nature', name: 'Natureza', icon: '🌱' }, { id: 'physics', name: 'Física', icon: '⚛️' }];
+const STATES = { selected: 'Descoberta selecionada', script_generating: 'Preparando e revisando roteiro', script_ready: 'Roteiro aprovado', audio_generating: 'Gerando narração', ready: 'Episódio pronto', failed: 'Etapa interrompida' };
+const REVIEWS = { peer_reviewed: 'Revisado por pares', preprint: 'Preprint · ainda sem revisão por pares', institutional_release: 'Publicação institucional', unknown: 'Revisão editorial não informada' };
 
 export default function App() {
-  return <SafeAreaProvider><DemoApp /></SafeAreaProvider>;
+  const [session, setSession] = useState(null), [loading, setLoading] = useState(true), [error, setError] = useState('');
+  useEffect(() => {
+    if (!supabase) { setLoading(false); return; }
+    let live = true;
+    supabase.auth.getSession().then(({ data, error: e }) => { if (live) { setSession(data.session); setError(e ? 'Não foi possível recuperar sua sessão. Entre novamente.' : ''); setLoading(false); } }).catch(() => { if (live) { setError('Não foi possível recuperar sua sessão.'); setLoading(false); } });
+    const { data } = supabase.auth.onAuthStateChange((_event, value) => { if (live) setSession(value); });
+    const refresh = state => state === 'active' ? supabase.auth.startAutoRefresh() : supabase.auth.stopAutoRefresh();
+    refresh(AppState.currentState);
+    const sub = AppState.addEventListener('change', refresh);
+    return () => { live = false; data.subscription.unsubscribe(); sub.remove(); supabase.auth.stopAutoRefresh(); };
+  }, []);
+  return <SafeAreaProvider><SafeAreaView style={s.safe}><StatusBar barStyle="light-content" backgroundColor={colors.bg} />
+    {configError ? <View style={s.page}><Text style={s.brand}>Eureka</Text><Notice error>{configError}</Notice></View>
+      : loading ? <ActivityIndicator color={colors.green} accessibilityLabel="Recuperando sessão" />
+        : session ? <Home key={session.user.id} session={session} /> : <Login initialError={error} />}
+  </SafeAreaView></SafeAreaProvider>;
 }
-
-function DemoApp() {
-  const requestRef = useRef(0);
-  const [topic, setTopic] = useState(TOPICS[0][0]);
-  const [discoveries, setDiscoveries] = useState([]);
-  const [loadState, setLoadState] = useState("loading");
-  const [selected, setSelected] = useState(null);
-  const [episode, setEpisode] = useState(null);
-  const [activeQuestion, setActiveQuestion] = useState(null);
-  const [history, setHistory] = useState([]);
-
-  async function load(subject) {
-    const requestId = requestRef.current + 1;
-    requestRef.current = requestId;
-    setLoadState("loading");
-    setDiscoveries([]);
-    setSelected(null);
-    setEpisode(null);
-    setActiveQuestion(null);
+function Login({ initialError }) {
+  const [email, setEmail] = useState(''), [password, setPassword] = useState(''), [busy, setBusy] = useState(false), [message, setMessage] = useState(initialError);
+  const pending = useRef(false);
+  async function submit() {
+    if (pending.current) return;
+    if (!email.trim() || password.length < 6) { setMessage('Informe seu e-mail e uma senha com pelo menos seis caracteres.'); return; }
+    pending.current = true; setBusy(true); setMessage('');
     try {
-      const result = await getDiscoveriesMock(subject);
-      if (requestId !== requestRef.current) return;
-      setDiscoveries(result);
-      setLoadState("success");
-    } catch (error) {
-      if (requestId !== requestRef.current) return;
-      setLoadState("error");
-    }
+      const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      if (error) { setMessage(error.code === 'invalid_credentials' ? 'E-mail ou senha incorretos.' : error.code === 'email_not_confirmed' ? 'Confirme seu e-mail antes de entrar.' : 'Não foi possível entrar ou cadastrar. Confira os dados e tente novamente.'); return; }
+      setPassword('');
+      if (!data.session) setMessage('Confira sua caixa de entrada e confirme o e-mail. Depois volte e toque em Entrar.');
+    } catch { setMessage('Sem conexão com o login. Tente novamente.'); }
+    finally { pending.current = false; setBusy(false); }
   }
-
-  useEffect(() => { load(topic); }, [topic]);
-
-  const fresh = discoveries.filter((item) => !history.some((heard) => heard.id === item.id));
-
-  function surprise() {
-    if (!fresh.length) return;
-    setSelected(fresh[Math.floor(Math.random() * fresh.length)]);
-  }
-
-  function addToHistory(item) {
-    setHistory((old) => old.some((entry) => entry.id === item.id)
-      ? old
-      : [{ ...item, topic }, ...old].slice(0, 8));
-  }
-
-  function renderDiscoveryState() {
-    if (loadState === "loading") {
-      return (
-        <View style={styles.stateCard} accessibilityLiveRegion="polite">
-          <ActivityIndicator color={C.green} />
-          <Text style={styles.cardTitle}>Buscando descobertas…</Text>
-          <Text style={styles.body}>Estamos preparando até três destaques para você.</Text>
-        </View>
-      );
-    }
-    if (loadState === "error") {
-      return (
-        <View style={[styles.stateCard, styles.errorCard]} accessibilityRole="alert">
-          <Text style={styles.cardTitle}>Não conseguimos carregar as descobertas</Text>
-          <Text style={styles.body}>A busca falhou. Tente novamente em instantes.</Text>
-          <Button label="Tentar novamente" secondary onPress={() => load(topic)} />
-        </View>
-      );
-    }
-    if (!fresh.length) {
-      return (
-        <View style={styles.stateCard}>
-          <Text style={styles.cardTitle}>Nenhuma descoberta nova por aqui</Text>
-          <Text style={styles.body}>Você já ouviu os destaques deste tema. Escolha outro para continuar explorando.</Text>
-        </View>
-      );
-    }
-    return fresh.slice(0, 3).map((item) => (
-      <View key={item.id} style={[styles.discoveryCard, selected && selected.id === item.id && styles.selectedCard]}>
-        <View style={styles.cardTop}>
-          <Text style={styles.mockTag}>MOCK · {item.date}</Text>
-        </View>
-        <Text style={styles.discoveryTitle}>{item.title}</Text>
-        <Text style={styles.body}>{item.summary}</Text>
-        <Text style={styles.source}>{item.source}</Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ selected: !!selected && selected.id === item.id }}
-          accessibilityLabel={"Escolher descoberta: " + item.title}
-          onPress={() => setSelected(item)}
-          style={styles.chooseButton}
-        >
-          <Text style={styles.chooseText}>{selected && selected.id === item.id ? "Selecionada ✓" : "Escolher descoberta →"}</Text>
-        </Pressable>
-      </View>
-    ));
-  }
-
-  return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor={C.bg} />
-      <ScrollView contentContainerStyle={styles.page}>
-        <View style={styles.header}>
-          <View style={styles.logo}><Text style={styles.logoText}>✳</Text></View>
-          <Text style={styles.brand}>Eureka</Text>
-          <View style={{ flex: 1 }} />
-          <Text style={styles.headerCaption}>CIÊNCIA EM ÁUDIO</Text>
-        </View>
-
-        <View style={styles.hero}>
-          <Text style={styles.eyebrow}>SEU INTERVALO DE CURIOSIDADE</Text>
-          <Text style={styles.heroTitle}>Uma descoberta.{"\n"}Uma boa conversa.</Text>
-          <Text style={styles.body}>Escolha um tema, encontre algo novo e transforme ciência em um episódio curto para ouvir.</Text>
-          <Text style={styles.badge}>☀️  5 minutos para aprender</Text>
-        </View>
-
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Por onde vamos começar?</Text>
-          <Text style={styles.hint}>Escolha um tema</Text>
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.topicList} accessibilityLabel="Seis temas de ciência">
-          {TOPICS.map((item) => {
-            const active = topic === item[0];
-            return (
-              <Pressable
-                key={item[0]}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-                accessibilityLabel={"Tema: " + item[0]}
-                onPress={() => active ? null : setTopic(item[0])}
-                style={[styles.topic, active && styles.topicActive]}
-              >
-                <Text style={styles.topicIcon}>{item[1]}</Text>
-                <Text style={[styles.topicText, active && styles.topicTextActive]}>{item[0]}</Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-
-        <View style={[styles.sectionHeader, styles.discoverHeader]}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.sectionTitle}>Descobertas para você</Text>
-            <Text style={styles.hint}>{topic} · até 3 destaques</Text>
-          </View>
-          <Button label="↻ Atualizar" secondary disabled={loadState === "loading"} onPress={() => load(topic)} />
-        </View>
-
-        <View accessibilityLiveRegion="polite">{renderDiscoveryState()}</View>
-
-        {selected && !episode ? (
-          <View style={styles.confirmCard}>
-            <Text style={styles.confirmText}>Descoberta selecionada. O episódio só é preparado após sua confirmação.</Text>
-            <Button label="Ver episódio demonstrativo →" onPress={() => { setEpisode(selected); setActiveQuestion(null); }} />
-          </View>
-        ) : null}
-
-        {!episode ? (
-          <Button label="✦  Me surpreenda" disabled={loadState !== "success" || !fresh.length} onPress={surprise} />
-        ) : null}
-
-        {episode ? (
-          <View style={styles.episodeArea}>
-            <Text style={styles.eyebrow}>SEU EPISÓDIO · {topic.toUpperCase()}</Text>
-            <Text style={styles.episodeTitle}>{episode.title}</Text>
-            <Text style={styles.body}>Duração prevista de até três minutos.</Text>
-            <Text style={styles.mockTag}>EPISÓDIO DE DEMONSTRAÇÃO</Text>
-            <Player label="Ouvir episódio" duration={144} onStart={() => addToHistory(episode)} />
-
-            <View style={styles.panel}>
-              <Text style={styles.panelTitle}>O que sabemos × O que falta descobrir</Text>
-              <View style={styles.fact}>
-                <Text style={styles.factLabel}>O QUE SABEMOS</Text>
-                <Text style={styles.factText}>{episode.known}</Text>
-              </View>
-              <View style={styles.fact}>
-                <Text style={styles.factLabel}>O QUE FALTA DESCOBRIR</Text>
-                <Text style={styles.factText}>{episode.unknown}</Text>
-              </View>
-              <Text style={styles.caption}>Fontes e trechos de evidência aparecerão aqui após a integração científica.</Text>
-            </View>
-
-            <View style={styles.panel}>
-              <Text style={styles.panelTitle}>Quer aprofundar?</Text>
-              <Text style={styles.body}>Escolha uma das três perguntas para abrir um player separado.</Text>
-              {episode.questions.map((question, index) => (
-                <Pressable
-                  key={question}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: activeQuestion === index }}
-                  onPress={() => setActiveQuestion(index)}
-                  style={[styles.question, activeQuestion === index && styles.selectedCard]}
-                >
-                  <Text style={styles.questionText}>{question}</Text>
-                  <Text style={styles.caption}>Resposta em áudio · 30–60 segundos</Text>
-                </Pressable>
-              ))}
-              {activeQuestion !== null ? (
-                <Player label={"Resposta: " + episode.questions[activeQuestion]} duration={42} />
-              ) : null}
-            </View>
-            <Button label="Voltar às descobertas" secondary onPress={() => setEpisode(null)} />
-          </View>
-        ) : null}
-
-        <View style={styles.history}>
-          <View style={styles.historyHeader}>
-            <Text style={styles.sectionTitle}>Ouvidos recentemente</Text>
-            {history.length ? <Pressable accessibilityRole="button" onPress={() => setHistory([])}><Text style={styles.chooseText}>Limpar</Text></Pressable> : null}
-          </View>
-          {history.length ? history.map((item) => (
-            <View key={item.id} style={styles.historyItem}>
-              <Text style={styles.factLabel}>{item.topic}</Text>
-              <Text style={styles.historyText}>{item.title}</Text>
-            </View>
-          )) : <Text style={styles.body}>Seus episódios ouvidos aparecerão aqui quando você der play.</Text>}
-        </View>
-
-        <Text style={styles.footer}>Eureka · interface e conteúdo demonstrativos</Text>
-      </ScrollView>
-    </SafeAreaView>
-  );
+  return <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.page}>
+    <Text style={s.brand}>✳ Eureka</Text><Text style={s.title}>Ciência para ouvir e entender.</Text><Text style={s.body}>Entre para explorar descobertas e guardar seus episódios.</Text>
+    <Text style={s.text}>E-mail</Text><TextInput accessibilityLabel="E-mail" style={s.input} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" editable={!busy} />
+    <Text style={s.text}>Senha</Text><TextInput accessibilityLabel="Senha" style={s.input} value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" autoComplete="current-password" editable={!busy} />
+    {message ? <Notice>{message}</Notice> : null}
+    <Button label={busy ? 'Aguarde…' : 'Entrar'} onPress={submit} disabled={busy} />
+    <Text style={s.caption}>Piloto por convite. Peça sua conta de teste ao responsável. A conta de administração do painel Supabase é separada.</Text>
+  </ScrollView></KeyboardAvoidingView>;
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
-  page: { paddingHorizontal: 19, paddingBottom: 40, backgroundColor: C.bg },
-  header: { minHeight: 58, flexDirection: "row", alignItems: "center", borderBottomWidth: 1, borderBottomColor: C.line },
-  logo: { width: 32, height: 32, borderRadius: 10, backgroundColor: C.darkGreen, alignItems: "center", justifyContent: "center", marginRight: 9 },
-  logoText: { color: "#FFFFFF", fontSize: 18 },
-  brand: { color: C.text, fontSize: 20, fontWeight: "800" },
-  headerCaption: { color: C.muted, fontSize: 9, letterSpacing: 1 },
-  hero: { paddingTop: 32, paddingBottom: 13 },
-  eyebrow: { color: C.green, fontSize: 10, fontWeight: "800", letterSpacing: 1.2 },
-  heroTitle: { color: C.text, fontSize: 35, lineHeight: 40, fontWeight: "800", letterSpacing: -1.2, marginTop: 11 },
-  body: { color: C.muted, fontSize: 12, lineHeight: 18, marginTop: 6 },
-  badge: { color: C.muted, fontSize: 11, marginTop: 15, backgroundColor: C.card, padding: 9, borderRadius: 22, alignSelf: "flex-start" },
-  sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 22, marginBottom: 11 },
-  sectionTitle: { color: C.text, fontSize: 16, fontWeight: "700" },
-  hint: { color: C.muted, fontSize: 10, marginTop: 3 },
-  topicList: { gap: 9, paddingBottom: 4 },
-  topic: { width: 142, height: 92, borderRadius: 14, padding: 11, backgroundColor: C.card, borderWidth: 1, borderColor: C.line, justifyContent: "space-between" },
-  topicActive: { borderColor: C.green, backgroundColor: "#10251A" },
-  topicIcon: { fontSize: 22 },
-  topicText: { color: C.muted, fontSize: 11, lineHeight: 14, fontWeight: "700" },
-  topicTextActive: { color: C.text },
-  discoverHeader: { marginTop: 29 },
-  button: { borderRadius: 11, minHeight: 42, paddingHorizontal: 14, alignItems: "center", justifyContent: "center", marginTop: 8 },
-  primaryButton: { backgroundColor: C.darkGreen },
-  secondaryButton: { backgroundColor: C.card, borderColor: C.line, borderWidth: 1 },
-  buttonText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
-  secondaryButtonText: { color: C.text },
-  disabled: { opacity: 0.45 },
-  pressed: { opacity: 0.75 },
-  stateCard: { backgroundColor: C.card, borderColor: C.line, borderWidth: 1, borderRadius: 15, padding: 18, marginBottom: 10 },
-  errorCard: { backgroundColor: "#211715", borderColor: "#663D33" },
-  discoveryCard: { backgroundColor: C.card, borderColor: C.line, borderWidth: 1, borderRadius: 15, padding: 16, marginBottom: 10 },
-  selectedCard: { borderColor: C.green },
-  cardTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  mockTag: { color: C.green, backgroundColor: C.mint, borderRadius: 18, overflow: "hidden", paddingHorizontal: 9, paddingVertical: 5, fontSize: 9, fontWeight: "700", alignSelf: "flex-start", marginTop: 5 },
-  cardTitle: { color: C.text, fontSize: 15, lineHeight: 20, fontWeight: "700", marginTop: 8, marginBottom: 3 },
-  discoveryTitle: { color: C.text, fontSize: 16, lineHeight: 21, fontWeight: "700", marginTop: 11, marginBottom: 3 },
-  source: { color: C.muted, fontSize: 9, marginTop: 7 },
-  chooseButton: { alignSelf: "flex-start", paddingTop: 10, paddingBottom: 2 },
-  chooseText: { color: C.green, fontSize: 11, fontWeight: "700" },
-  confirmCard: { backgroundColor: C.mint, borderColor: "#28583A", borderWidth: 1, borderRadius: 14, padding: 14, marginBottom: 8 },
-  confirmText: { color: C.text, fontSize: 12, lineHeight: 18, fontWeight: "600" },
-  episodeArea: { marginTop: 26, gap: 12 },
-  episodeTitle: { color: C.text, fontSize: 22, lineHeight: 28, fontWeight: "700", marginTop: 7 },
-  player: { flexDirection: "row", alignItems: "center", gap: 10, padding: 12, borderRadius: 13, backgroundColor: C.raised, marginTop: 8 },
-  playButton: { width: 40, height: 40, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: C.darkGreen },
-  playIcon: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
-  playerContent: { flex: 1 },
-  playerLabel: { color: C.text, fontSize: 11, fontWeight: "700" },
-  caption: { color: C.muted, fontSize: 9, lineHeight: 14, marginTop: 4 },
-  progressTrack: { height: 4, backgroundColor: "#354139", borderRadius: 5, overflow: "hidden", marginTop: 7 },
-  progressFill: { height: "100%", backgroundColor: C.green },
-  time: { color: C.muted, fontSize: 9, lineHeight: 13, textAlign: "right", width: 43 },
-  panel: { backgroundColor: C.card, borderWidth: 1, borderColor: C.line, borderRadius: 15, padding: 15, gap: 8 },
-  panelTitle: { color: C.text, fontSize: 14, fontWeight: "700", marginBottom: 3 },
-  fact: { backgroundColor: C.raised, borderRadius: 10, padding: 11 },
-  factLabel: { color: C.green, fontSize: 9, fontWeight: "700", letterSpacing: 0.6 },
-  factText: { color: "#C9D2CC", fontSize: 11, lineHeight: 17, marginTop: 4 },
-  question: { backgroundColor: C.raised, borderColor: C.line, borderWidth: 1, borderRadius: 10, padding: 10, marginTop: 2 },
-  questionText: { color: C.text, fontSize: 12, lineHeight: 17, fontWeight: "600" },
-  history: { borderTopWidth: 1, borderTopColor: C.line, marginTop: 26, paddingTop: 16, gap: 9 },
-  historyHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  historyItem: { backgroundColor: C.card, borderColor: C.line, borderWidth: 1, borderRadius: 11, padding: 10 },
-  historyText: { color: C.text, fontSize: 11, marginTop: 4 },
-  footer: { textAlign: "center", color: C.muted, fontSize: 9, marginTop: 22 },
-});
+function Sources({ sources, onError, sourceIds }) {
+  return <View style={{ gap: 12 }}>{sources.filter(source => !sourceIds || sourceIds.includes(source.id)).map(source => <View key={source.id}>
+    <Pressable accessibilityRole="link" onPress={() => { if (!source.url?.startsWith('https://')) { onError('Referência indisponível.'); return; } Linking.openURL(source.url).catch(() => onError('Não foi possível abrir a referência.')); }}><Text style={s.link}>{source.title}</Text></Pressable>
+    <Text style={s.caption}>{source.publisher} · {formatDate(source.publishedAt)}</Text>
+  </View>)}</View>;
+}
+function Home({ session }) {
+  const [theme, setTheme] = useState('space'), [selection, setSelection] = useState(null), [episode, setEpisode] = useState(null);
+  const [screen, setScreen] = useState('discover'), [busy, setBusy] = useState(''), [error, setError] = useState(''), [info, setInfo] = useState('');
+  const [capabilities, setCapabilities] = useState(null), [pendingIntent, setPendingIntent] = useState(null);
+  const [history, setHistory] = useState([]), [cursor, setCursor] = useState(null), [historyLoaded, setHistoryLoaded] = useState(false);
+  const lock = useRef(false), mounted = useRef(true), currentEpisode = useRef(null);
+  const flow = useMemo(() => createEpisodeFlow({ api, storage: AsyncStorage, userId: session.user.id, uuid: randomUUID }), [session.user.id]);
+  async function run(label, work) {
+    if (lock.current) return;
+    lock.current = true; setBusy(label); setError(''); setInfo('');
+    try { await work(); } catch (e) { if (mounted.current) setError(e.message || 'Não foi possível concluir. Tente novamente.'); }
+    finally { lock.current = false; if (mounted.current) setBusy(''); }
+  }
+  function showEpisode(value) { currentEpisode.current = value.id; setEpisode(value); setScreen('episode'); setPendingIntent(null); }
+  async function refreshCapabilities() { const caps = await api('/capabilities', { publicRoute: true }); if (mounted.current) setCapabilities(caps); }
+  async function refreshEpisode() {
+    if (!currentEpisode.current) return;
+    const id = currentEpisode.current; const { episode: value } = await api(`/episodes/${id}`);
+    if (mounted.current && currentEpisode.current === id) setEpisode(value);
+  }
+  useEffect(() => {
+    mounted.current = true;
+    run('Recuperando sessão…', async () => { await api('/me'); await refreshCapabilities(); const intent = await flow.load(); if (intent?.episodeId) showEpisode(await flow.open(intent.episodeId)); else if (intent?.choice) setPendingIntent(intent); });
+    const sub = AppState.addEventListener('change', state => { if (state === 'active' && !lock.current) run('Atualizando estado…', async () => { await refreshCapabilities(); await refreshEpisode(); }); });
+    return () => { mounted.current = false; sub.remove(); };
+  }, []);
+  useEffect(() => { const sub = BackHandler.addEventListener('hardwareBackPress', () => { if (screen !== 'discover') { setScreen('discover'); return true; } return false; }); return () => sub.remove(); }, [screen]);
+  useEffect(() => {
+    if (!episode?.state.endsWith('_generating')) return;
+    let stopped = false, polling = false;
+    const timer = setInterval(async () => { if (stopped || polling || lock.current || AppState.currentState !== 'active') return; polling = true; try { await refreshEpisode(); } catch { if (!stopped) { setError('Não foi possível consultar a geração. Toque em Atualizar estado.'); clearInterval(timer); } } finally { polling = false; } }, 5000);
+    return () => { stopped = true; clearInterval(timer); };
+  }, [episode?.id, episode?.state]);
+  async function search() { await run('Buscando estudos…', async () => { setSelection(null); setSelection(DiscoverySearchResponse.parse(await api('/discovery-searches', { method: 'POST', body: { themeId: theme } }))); }); }
+  async function choose(mode, discoveryId) {
+    await run('Salvando escolha…', async () => {
+      const choice = { selectionSetId: selection.selectionSetId, mode, ...(mode === 'chosen' ? { discoveryId } : {}) };
+      try { showEpisode(await flow.choose(choice)); } finally { const intent = await flow.load(); if (intent && !intent.episodeId) setPendingIntent(intent); }
+    });
+  }
+  async function historyPage(more = false) {
+    await run('Carregando histórico…', async () => {
+      const value = await api('/history' + (more && cursor ? `?cursor=${encodeURIComponent(cursor)}` : '')); const items = [];
+      for (const item of value.items) { try { items.push({ ...item, episode: (await api(`/episodes/${item.episode_id}`)).episode }); } catch { items.push(item); } }
+      setHistory(old => more ? [...old, ...items.filter(item => !old.some(x => x.episode_id === item.episode_id))] : items); setCursor(value.nextCursor); setHistoryLoaded(true);
+    });
+  }
+  const stage = stageFor(episode);
+  return <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.page}>
+    <View style={s.header}><Text style={s.brand}>✳ Eureka</Text><Button label="Sair" secondary disabled={!!busy} onPress={() => run('Saindo…', async () => { const { error: e } = await supabase.auth.signOut({ scope: 'local' }); if (e) throw e; })} /></View>
+    <View style={s.row}><Button label="Descobertas" secondary onPress={() => { setScreen('discover'); setError(''); }} /><Button label="Histórico" secondary disabled={!!busy} onPress={() => { setScreen('history'); historyPage(); }} />{episode ? <Button label="Meu episódio" secondary onPress={() => setScreen('episode')} /> : null}</View>
+    {busy ? <View style={s.row}><ActivityIndicator color={colors.green} /><Text style={s.body}>{busy}</Text></View> : null}
+    {error ? <Notice error>{error}</Notice> : null}{info ? <Notice>{info}</Notice> : null}
+    {screen === 'discover' ? <>
+      <Text style={s.title}>Qual descoberta você quer ouvir hoje?</Text><Text style={s.body}>Escolha um tema e busque estudos com fontes e evidências.</Text>
+      <View style={s.themes}>{THEMES.map(item => <Pressable key={item.id} accessibilityRole="button" accessibilityState={{ selected: theme === item.id, disabled: !!busy }} disabled={!!busy} onPress={() => { setTheme(item.id); setSelection(null); }} style={[s.theme, theme === item.id && s.selected]}><Text style={s.text}>{item.icon} {item.name}</Text></Pressable>)}</View>
+      <Button label="Buscar descobertas" disabled={!!busy} onPress={search} />
+      {pendingIntent ? <><Notice>Uma escolha ficou sem confirmação. Retome com a mesma tentativa para evitar criar outro episódio.</Notice><Button label="Retomar escolha pendente" disabled={!!busy} secondary onPress={() => run('Retomando escolha…', async () => showEpisode(await flow.choose(pendingIntent.choice)))} /></> : null}
+      {selection?.partial ? <Notice>A busca ficou incompleta porque algumas fontes não responderam. Você pode tentar novamente.</Notice> : null}
+      {selection && !selection.options.length ? <Notice>{selection.emptyReason === 'sources_unavailable_or_incomplete' ? 'Não foi possível obter evidências suficientes nesta busca. Tente novamente mais tarde.' : 'Nenhum estudo com evidências revisadas está disponível neste tema agora. Tente outro tema.'}</Notice> : null}
+      {selection?.options.map(item => <View key={item.id} style={s.card}><Text style={s.caption}>{formatDate(item.publishedAt)} · {REVIEWS[item.reviewStatus]}</Text><Text style={s.subtitle}>{item.title}</Text><Text style={s.body}>{item.summary}</Text>{item.evidenceReview === 'automated' ? <Text style={s.caption}>Resumo e evidências revisados por IA. Confira as fontes.</Text> : null}{item.alreadyHeard ? <Text style={s.caption}>Você já ouviu esta descoberta.</Text> : null}<Sources sources={item.sources} onError={setError} /><Button label="Escolher descoberta" disabled={!!busy} onPress={() => choose('chosen', item.id)} /></View>)}
+      {selection?.options.length ? <Button label="Me surpreenda" secondary disabled={!!busy} onPress={() => choose('surprise')} /> : null}
+    </> : null}
+    {screen === 'episode' && episode ? <>
+      <Text style={s.title}>{episode.title}</Text><Notice>{STATES[episode.state] || episode.state}</Notice>
+      {episode.errorCode ? <Notice error>Etapa interrompida ({episode.errorCode}). Consulte o estado ou tente recuperar o resultado antes de gerar novamente.</Notice> : null}
+      <Button label="Atualizar estado" secondary disabled={!!busy} onPress={() => run('Consultando episódio…', async () => { await refreshCapabilities(); await refreshEpisode(); })} />
+      {episode.state === 'selected' || episode.state === 'script_ready' ? <>
+        {!(stage === 'script' ? capabilities?.textEnabled : capabilities?.speechEnabled) ? <Notice>A geração desta etapa está indisponível no momento. Atualize o estado para verificar novamente.</Notice> : null}
+        <Button label={stage === 'script' ? 'Gerar roteiro com fontes' : 'Gerar áudio do roteiro'} disabled={!!busy || !(stage === 'script' ? capabilities?.textEnabled : capabilities?.speechEnabled)} onPress={() => run(stage === 'script' ? 'Preparando e revisando roteiro…' : 'Gerando áudio…', async () => showEpisode(await flow.generate(stage)))} />
+      </> : null}
+      {episode.state === 'failed' || episode.state.endsWith('_generating') ? <><Button label="Recuperar resultado preservado" secondary disabled={!!busy} onPress={() => run('Recuperando resultado…', async () => showEpisode(await flow.recover(stage)))} /><Button label="Preparar tentativa corretiva" secondary disabled={!!busy} onPress={() => run('Verificando tentativa permitida…', async () => { showEpisode(await flow.prepareRetry(stage)); setInfo('Correção preparada. Toque em Gerar para iniciar a nova tentativa.'); })} /></> : null}
+      {episode.state === 'ready' && episode.audio ? audioExpired(episode) ? <Notice>O áudio expirou. A ficha e a transcrição continuam aqui; nenhum áudio será regenerado automaticamente.</Notice> : <AudioPlayer key={episode.id} episode={episode} userId={session.user.id} onCompleted={() => setHistoryLoaded(false)} /> : null}
+      {episode.script ? <><Text style={s.subtitle}>O que sabemos × O que falta descobrir</Text>
+        {Object.entries({ result: 'Resultado', evidence: 'Evidência', limitation: 'Limitações e perguntas abertas' }).map(([key, label]) => { const fact = episode.script.evidenceCard[key]; return <View key={key} style={s.card}><Text style={s.subtitle}>{label}</Text><Text style={s.text}>{fact.text}</Text><Sources sources={episode.sources} sourceIds={fact.references.map(ref => ref.sourceId)} onError={setError} /></View>; })}
+        <View style={s.card}><Text style={s.subtitle}>Transcrição</Text>{episode.script.paragraphs.map(p => <Text key={p.id} selectable style={s.text}>{p.text}</Text>)}</View>
+      </> : null}
+      <Text style={s.subtitle}>Referências</Text><Sources sources={episode.sources} onError={setError} /><Text style={s.caption}>A revisão por IA não certifica a verdade científica. Aprofundamentos ainda não estão disponíveis.</Text>
+    </> : null}
+    {screen === 'history' ? <><Text style={s.title}>Suas escutas</Text><Text style={s.body}>Os episódios aparecem aqui quando a reprodução termina.</Text>
+      {!historyLoaded && !busy ? <Button label="Atualizar histórico" onPress={() => historyPage()} /> : null}{historyLoaded && !history.length ? <Notice>Você ainda não concluiu uma escuta.</Notice> : null}
+      {history.map(item => <View style={s.card} key={item.episode_id}><Text style={s.subtitle}>{item.episode?.title || 'Episódio concluído'}</Text><Text style={s.caption}>{formatDate(item.completed_at.slice(0, 10))}{item.episode && audioExpired(item.episode) ? ' · áudio expirado' : ''}</Text><Button label="Abrir episódio" secondary disabled={!!busy} onPress={() => run('Abrindo episódio…', async () => showEpisode(await flow.open(item.episode_id)))} /></View>)}
+      {cursor ? <Button label="Carregar mais" disabled={!!busy} onPress={() => historyPage(true)} /> : null}
+    </> : null}
+  </ScrollView>;
+}

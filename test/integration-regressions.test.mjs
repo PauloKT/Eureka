@@ -42,3 +42,11 @@ test('stop after three approved discoveries and strip private evidence', async (
   assert.equal(result.options.length,3); assert.equal(result.emptyReason,null);
   assert.equal(JSON.stringify(result).includes('excerpts'),false); assert.equal(JSON.stringify(result).includes('reviewedBy'),false);
 });
+
+test('automatic batch is prepared once, saved and reused without human input', async () => {
+  const records=[0,1,2].map(record), entries=new Map(), s=store(entries); let calls=0;
+  const args={userId:'user',themeId:'physics',providers:{arxiv:async()=>records},store:s,now,
+    prepareDiscoveries:async rs=>{calls++;return Promise.all(rs.map(async r=>({...await reviewed(r,'physics'),reviewMethod:'automated',reviewedBy:'automated:test'})));}};
+  const first=await discoverySearch(args);assert.equal(first.options.length,3);assert.equal(first.options[0].evidenceReview,'automated');
+  const second=await discoverySearch(args);assert.equal(second.options.length,3);assert.equal(calls,1);
+});

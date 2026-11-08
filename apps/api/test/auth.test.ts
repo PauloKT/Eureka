@@ -33,4 +33,13 @@ describe('sessão do aplicativo Expo', () => {
   it('falha com segurança sem configuração', async () => {
     expect((await app.fetch(request(), {})).status).toBe(503);
   });
+  it('uses Workers-compatible redirect rejection without forwarding bearer tokens', async () => {
+    const mock=vi.fn(async (_url:unknown,init:RequestInit)=>{
+      expect(init.redirect).toBe('manual');
+      return new Response(null,{status:302,headers:{Location:'https://untrusted.example'}});
+    });
+    vi.stubGlobal('fetch',mock);
+    expect((await app.fetch(request(),env)).status).toBe(503);
+    expect(mock).toHaveBeenCalledTimes(1);
+  });
 });

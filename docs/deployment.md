@@ -1,33 +1,37 @@
-# Publicação do backend — 02/11/2026
+# Operação e publicação
 
-- Worker: `eureka-api`.
-- Base da API: `https://eureka-api.eureka-api.workers.dev/api/v1`.
-- Aplicativo cliente: React Native + Expo; este endereço é API, não interface web.
-- Deploy inicial e deploy de configuração de segredos confirmados pelo Wrangler.
-- Segredos enviados por stdin, com autorização explícita de Paulo: URL/chaves Supabase, chave Gemini e nomes dos dois modelos. Nenhum valor foi colocado no código, no Expo ou neste documento.
-- `LIVE_AI_ENABLED=false` e `FOLLOWUPS_ENABLED=false` mantidos.
-- Supabase: tabelas da base e arquivo de tentativas verificados; budgets internos de texto 100/24h e 10/60s, voz 8/24h e 2/60s, bucket privado e bloqueio de leitura anônima confirmados. Flags de geração continuam desativadas.
+API: `https://eureka-api.eureka-api.workers.dev/api/v1`. Worker `eureka-api`; configurações em `apps/api/wrangler.jsonc`. Segredos em Cloudflare e no `.dev.vars` local ignorado pelo Git.
 
-## Verificação pública concluída
+## Situação
 
-Em nova verificação em 02/11/2026, HTTPS respondeu normalmente: health/themes/capabilities com 200 e me sem sessão com 401. A falha TLS inicial deixou de ocorrer sem desativar validação de certificados; sua causa não foi determinada.
+Em 08/11/2026, Paulo autorizou geração no piloto mantendo orçamento R$ 0. A API integrada de pesquisa/episódios foi publicada com `LIVE_AI_ENABLED=true`; aprofundamentos continuam false. Migrations 001/002/003 confirmadas. A preparação automática exige a migration 004 e publicação do código correspondente. O estado ao vivo deve ser conferido em `/health` e `/capabilities`; não inferir deploy a partir de um commit.
 
-Os checks públicos passaram. Migration 002 aplicada e atualização de recuperação/limpeza publicada: versão `18e8cc5a-6fa5-4a51-b516-ffe6bf39be0f`. Cron `0 5 * * *` registrado. Rotas recover/retry sem sessão retornam 401. Ainda testar login real no Expo e fluxo autorizado com dados reais da Pessoa 2.
+## Publicar
 
-## Registro consolidado de texto e voz
+```sh
+npm run typecheck
+npm test
+npm run deploy --workspace @eureka/api
+```
 
-- Teste real local em 02/11/2026: `gemini-2.5-flash-lite` retornou HTTP 404 em duas tentativas; não é o modelo configurado para o app.
-- Alternativa `gemini-3.1-flash-lite`: uma chamada de texto bem-sucedida. TTS `gemini-3.1-flash-tts-preview`, Kore: uma chamada bem-sucedida, PCM mono 24 kHz/16 bits, WAV de 30,04 s.
-- Amostra local preservada em `.tools/gemini-validation/amostra-kore.wav`, fora do Git. Paulo ouviu e avaliou “ficou muito boa a voz”. Direção: português brasileiro, conversa acolhedora, entonação variada, pausas curtas, sem tom publicitário nem palavras adicionais.
-- A aprovação se limita a essa amostra. Não houve comparação completa entre duas vozes pelo grupo nem aprovação de episódios científicos completos em Android/iOS.
-- O script exploratório antigo foi removido na limpeza; testes de regressão permanecem em `apps/api/test`. Relatórios e amostra local continuam em `.tools/gemini-validation`. Não há chamada real de Gemini nos testes automáticos.
+Use `wrangler whoami` para conferir autenticação. `scripts/configurar-segredos-cloudflare.mjs` envia os segredos por stdin sem imprimir valores. Nunca habilitar faturamento, excedentes ou planos pagos. `LIVE_AI_ENABLED=false` interrompe novas gerações; recuperação e consulta continuam disponíveis.
 
-## Configuração e recuperação do serviço
+Rollback: consultar `wrangler deployments list` e escolher a versão compatível com o schema. Rollback de Worker não desfaz SQL nem chamadas já consumidas.
 
-- Configuração do Worker: `apps/api/wrangler.jsonc`.
-- Atualizar segredos: `node scripts/configurar-segredos-cloudflare.mjs`, após login autorizado no Wrangler. O script não imprime os valores.
-- Não versionar `.dev.vars` nem arquivos da pasta `.tools`.
-- Rollback: identificar versão anterior em `wrangler deployments list`, então usar o rollback da Cloudflare para a versão escolhida. Conferir compatibilidade do banco; rollback de código não desfaz migrations nem chamadas de IA.
-- Desativar: manter flag de geração false e budgets zero. Excluir Worker/bucket/projeto exige decisão explícita; não executar exclusão como tentativa de corrigir uma falha de publicação.
+## Modelos e cotas
 
-Paulo confirmou limite de 500 RPD para texto 3.1. Limpeza e recuperação implementadas e publicadas, 34 testes e build aprovados; budgets internos confirmados no banco e geração desativada. Disparo real do cron com arquivo vencido, recuperação real, busca integrada e testes completos Android/iOS ainda pendentes. Veja recovery-cleanup-quotas.md.
+Texto: `gemini-3.1-flash-lite`. Voz: `gemini-3.1-flash-tts-preview`, Kore, português brasileiro. Os budgets internos conferidos são texto 100 chamadas/24h e 10/60s; voz 8/24h e 2/60s. São limites conservadores do app, não garantias do provedor.
+
+Busca automatizada reserva duas chamadas de texto por lote; roteiro reserva duas (geração/revisão); áudio reserva uma de voz. Tentativas anteriores, inclusive falhas, continuam contando. HTTP 429 interrompe a etapa. Não trocar de chave/projeto para contornar cotas.
+
+## Recuperação e retenção
+
+`POST /episodes/:id/recover` com `{stage:"script"|"audio"}` recupera checkpoint sem IA. Operação com lease ativo de cinco minutos retorna conflito. Áudio recuperado precisa coincidir com tamanho e SHA-256 do checkpoint.
+
+`POST /episodes/:id/retry` prepara uma única correção para falhas determinadas, sem gerar. Exige nova intenção de geração depois. Resultado desconhecido não autoriza repetição cega. Falha de voz preserva roteiro aprovado.
+
+Áudios WAV têm até 180s, Storage privado, URL assinada de cinco minutos e retenção de sete dias. Cron `0 5 * * *` executa às 01:00 em Cuiabá e processa até 20 arquivos vencidos, preservando texto/ficha/histórico. Candidatos são caminhos registrados pelo app; não se apagam arquivos arbitrários do bucket. Falhas mantêm reservas de espaço até reconciliação.
+
+## Aceite ainda necessário
+
+Testar o fluxo publicado, login no Android, fidelidade/naturalidade de episódios completos, acessibilidade, interrupções, segundo plano e iPhone. Uma amostra curta de Kore foi aprovada anteriormente; isso não equivale a aprovação de todos os episódios. APK independente, lojas e aprofundamentos ainda não foram entregues.
