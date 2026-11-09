@@ -36,7 +36,8 @@ export function eligibility(record, { themeId, now = new Date(), recencyDays = 9
 }
 
 export function rankCandidates(records, { themeId, heardStudyKeys = [], now = new Date(), recencyDays = 90, limit = Infinity } = {}) {
-  const deduped = deduplicate(records).map(item => ({ item, check: eligibility(item, { themeId, now, recencyDays }) })).filter(x => x.check.eligible);
+  const eligible = records.map(item => ({ ...item, url: normalizeUrl(item.url) })).filter(item => eligibility(item, { themeId, now, recencyDays }).eligible);
+  const deduped = deduplicate(eligible).map(item => ({ item }));
   const heard = new Set(heardStudyKeys);
   return deduped.sort((a, b) => Number(heard.has(a.item.studyKey || a.item.identifier)) - Number(heard.has(b.item.studyKey || b.item.identifier)) || b.item.publishedAt.localeCompare(a.item.publishedAt)).slice(0, Math.max(0, limit)).map(x => ({ ...x.item, alreadyHeard: heard.has(x.item.studyKey || x.item.identifier) }));
 }
@@ -46,7 +47,7 @@ export async function searchTheme(themeId, providers, options = {}) {
   if (!definition) throw new Error('INVALID_THEME');
   const settled = await Promise.all(definition.primary.map(async provider => {
     if (typeof providers[provider] !== 'function') return { provider, status: 'unconfigured', records: [] };
-    try { return { provider, status: 'ok', records: await providers[provider](definition.queries?.[provider] ?? definition.query, { limit: 10 }) }; }
+    try { return { provider, status: 'ok', records: await providers[provider](definition.queries?.[provider] ?? definition.query, { limit: 10, now: options.now ?? new Date(), recencyDays: options.recencyDays ?? 90 }) }; }
     catch (error) { return { provider, status: 'failed', records: [], error: error instanceof Error ? error.message : 'SOURCE_UNAVAILABLE' }; }
   }));
   return { themeId, providerResults: settled, partial: settled.some(x => x.status !== 'ok'), options: rankCandidates(settled.flatMap(x => x.records), { ...options, themeId }) };

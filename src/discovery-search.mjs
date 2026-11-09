@@ -17,8 +17,17 @@ export async function discoverySearch({ userId, themeId, providers, store, cache
   const candidates = rankCandidates(result.providerResults.flatMap(x => x.records), { themeId, heardStudyKeys: history, now, recencyDays });
   const packages = new Map();
   const missing = [];
+  function validPackage(entry, record) {
+    const parsed = ReviewedDiscovery.safeParse(entry);
+    if (!parsed.success) return null;
+    const value = parsed.data, discovery = value.discovery;
+    const validationTime = now.getTime() + Math.max(0, Date.now() - startedAt);
+    if (discovery.themeId !== themeId || discovery.studyKey !== record.identifier || discovery.publishedAt !== record.publishedAt || Date.parse(value.expiresAt) <= validationTime || Date.parse(value.reviewedAt) > validationTime) return null;
+    if (['health', 'brain'].includes(themeId) && value.reviewStatus === 'preprint') return null;
+    return value;
+  }
   for (const record of candidates) {
-    const entry = await store.getEvidenceDiscovery(record.identifier, themeId);
+    const entry = validPackage(await store.getEvidenceDiscovery(record.identifier, themeId), record);
     if (entry) packages.set(record.identifier,entry);
     else missing.push(record);
   }
@@ -43,14 +52,9 @@ export async function discoverySearch({ userId, themeId, providers, store, cache
       if (packageEntry) await store.saveEvidenceDiscovery(record.identifier, themeId, ReviewedDiscovery.parse(packageEntry));
     }
     if (!packageEntry) continue;
-    const parsed = ReviewedDiscovery.safeParse(packageEntry);
-    if (!parsed.success) continue;
-    packageEntry = parsed.data;
+    packageEntry = validPackage(packageEntry, record);
+    if (!packageEntry) continue;
     const discovery = packageEntry.discovery;
-    // Evidence can be reviewed during this request, after the initial search timestamp.
-    const validationTime = now.getTime() + Math.max(0, Date.now() - startedAt);
-    if (discovery.themeId !== themeId || discovery.studyKey !== record.identifier || discovery.publishedAt !== record.publishedAt || Date.parse(packageEntry.expiresAt) <= validationTime || Date.parse(packageEntry.reviewedAt) > validationTime) continue;
-    if (['health', 'brain'].includes(themeId) && packageEntry.reviewStatus === 'preprint') continue;
     if (options.some(x => x.id === discovery.id)) continue;
     options.push(discovery); alreadyHeard.set(discovery.id, history.includes(discovery.studyKey)); reviewStatus.set(discovery.id, packageEntry.reviewStatus); evidenceReview.set(discovery.id, packageEntry.reviewMethod ?? 'human');
   }

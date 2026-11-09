@@ -6,6 +6,24 @@ import { createEvidencePackage, buildDiscovery, auditScriptReferences } from '..
 import { discoverySearch } from '../src/discovery-search.mjs';
 
 const valid = (extra = {}) => ({ title: 'Ensino de Ciência', identifier: 'doi:10.5555/test', url: 'https://doi.org/10.5555/test', publisher: 'Journal', publishedAt: '2026-10-01', abstract: 'O estudo observou uma associação em adultos. O tamanho da amostra foi limitado.', editorialStatus: 'peer_reviewed', access: 'abstract', studyKey: 'doi:10.5555/test', ...extra });
+test('ineligible duplicates cannot hide an eligible study', () => {
+  const now = new Date('2026-11-07T00:00:00Z');
+  for (const extra of [{abstract:''}, {url:'http://example.org'}, {publishedAt:'2020-01-01'}, {editorialStatus:'preprint'}]) {
+    const result = rankCandidates([valid(extra), valid()], {themeId:'health', now});
+    assert.equal(result.length, 1);
+    assert.equal(result[0].editorialStatus, 'peer_reviewed');
+    assert.equal(result[0].url, 'https://doi.org/10.5555/test');
+  }
+});
+test('search forwards its date window to the source adapter', async () => {
+  const now = new Date('2026-11-07T00:00:00Z');
+  let query;
+  await searchTheme('brain', {europepmc: (text, options) => searchEuropePmc(text, {...options, fetchImpl: async url => {
+    query = url.searchParams.get('query');
+    return Response.json({resultList:{result:[]}});
+  }})}, {now, recencyDays:180});
+  assert.match(query, /FIRST_PDATE:\[2026-05-11 TO 2026-11-07\]/);
+});
 test('NASA uses real nested publication fields and numeric identifiers without claiming peer review',async()=>{
   const [r] = await searchNasaNtrs('space',{limit:1,now:new Date('2026-11-07T00:00:00Z'),fetchImpl:async url=>{
     assert.equal(url.searchParams.get('page.size'),'1');assert.equal(url.searchParams.get('published.gte'),'2026-08-09');

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AppState, Text, View } from 'react-native';
+import { isRunningInExpoGo } from 'expo';
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from './client';
@@ -8,6 +9,8 @@ import { Button, Notice, colors, s } from './ui';
 import DownloadAudio from './DownloadAudio';
 const clock = value => `${Math.floor((value || 0) / 60)}:${String(Math.floor((value || 0) % 60)).padStart(2, '0')}`;
 export default function AudioPlayer({ episode, userId, onCompleted }) {
+  // The project's native playback service is installed by the config plugin in a build, not Expo Go.
+  const supportsBackgroundPlayback = !isRunningInExpoGo();
   const player = useAudioPlayer(null, { updateInterval: 500 });
   const status = useAudioPlayerStatus(player);
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [completed, setCompleted] = useState(false), [pendingCompletion, setPendingCompletion] = useState(false);
@@ -36,11 +39,11 @@ export default function AudioPlayer({ episode, userId, onCompleted }) {
       const access = await api(`/episodes/${episode.id}/audio-access`);
       if (!mounted.current) return;
       if (!access.url?.startsWith('https://')) throw new Error('Não foi possível abrir o áudio.');
-      await setAudioModeAsync({ playsInSilentMode: true, interruptionMode: 'doNotMix', shouldPlayInBackground: true });
+      await setAudioModeAsync({ playsInSilentMode: true, interruptionMode: 'doNotMix', shouldPlayInBackground: supportsBackgroundPlayback });
       expiry.current = Date.now() + access.expiresIn * 1000 - 15000;
       restore.current = { position, play };
       player.replace({ uri: access.url });
-      player.setActiveForLockScreen(true, { title: episode.title, artist: 'Eureka · voz gerada por IA' });
+      if (supportsBackgroundPlayback) player.setActiveForLockScreen(true, { title: episode.title, artist: 'Eureka · voz gerada por IA' });
     } catch (e) { if (mounted.current) setError(e.message); }
     finally { loading.current = false; if (mounted.current) setBusy(false); }
   }
@@ -48,7 +51,7 @@ export default function AudioPlayer({ episode, userId, onCompleted }) {
     mounted.current = true; loadAudio();
     AsyncStorage.getItem(completionKey).then(value => { if (value && mounted.current) { setPendingCompletion(true); recordCompletion(); } }).catch(() => {});
     const sub = AppState.addEventListener('change', state => { if (state === 'active' && !player.playing && Date.now() >= expiry.current) loadAudio(); });
-    return () => { mounted.current = false; sub.remove(); player.pause(); player.clearLockScreenControls(); };
+    return () => { mounted.current = false; sub.remove(); player.pause(); if (supportsBackgroundPlayback) player.clearLockScreenControls(); };
   }, []);
   useEffect(() => {
     if (status.isLoaded && restore.current) {

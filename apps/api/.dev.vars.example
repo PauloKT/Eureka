@@ -1,0 +1,10 @@
+# Copie para .dev.vars nesta pasta. Nunca publique o arquivo preenchido.
+GEMINI_API_KEY=
+# Preencher modelos somente depois de confirmar disponibilidade gratuita.
+GEMINI_TEXT_MODEL=
+GEMINI_TTS_MODEL=
+SUPABASE_URL=
+SUPABASE_PUBLISHABLE_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+LIVE_AI_ENABLED=false
+FOLLOWUPS_ENABLED=false

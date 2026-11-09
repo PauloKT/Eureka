@@ -59,3 +59,23 @@ test('evidence approved during a slow search is returned in that first response'
     prepareDiscoveries:async()=>{clock+=30000;const item=await reviewed(r,'physics');item.reviewedAt=new Date(clock).toISOString();return [item];}});
   assert.equal(result.options.length,1);
 });
+
+test('expired stored packages are renewed in a batch instead of suppressing preparation', async () => {
+  const records = [0,1,2].map(record), entries = new Map();
+  for (const r of records) entries.set(`${r.identifier}:physics`, {...await reviewed(r,'physics'), expiresAt:'2026-11-06T12:00:00Z'});
+  let calls = 0;
+  const args = {userId:'user', themeId:'physics', providers:{arxiv:async()=>records,openalex:async()=>[]}, store:store(entries), now,
+    prepareDiscoveries:async rs => { calls++; assert.equal(rs.length,3); return Promise.all(rs.map(r=>reviewed(r,'physics'))); }};
+  assert.equal((await discoverySearch(args)).options.length,3);
+  assert.equal((await discoverySearch(args)).options.length,3);
+  assert.equal(calls,1);
+});
+
+test('invalid stored packages allow individual preparation', async () => {
+  const r = record(0), entries = new Map([[`${r.identifier}:physics`, {invalid:true}]]);
+  let calls = 0;
+  const result = await discoverySearch({userId:'user',themeId:'physics',providers:{arxiv:async()=>[r],openalex:async()=>[]},store:store(entries),now,
+    prepareDiscovery: async item => {calls++; return reviewed(item,'physics');}});
+  assert.equal(result.options.length,1);
+  assert.equal(calls,1);
+});
